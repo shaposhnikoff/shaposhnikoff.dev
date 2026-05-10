@@ -1,7 +1,7 @@
 baseURL      = "https://shaposhnikoff.dev/"
 languageCode = "en-us"
 title        = "Max Shaposhnikoff"
-theme        = ""
+#theme        = ""
 enableRobotsTXT = true
 enableGitInfo   = true
 enableEmoji     = false
