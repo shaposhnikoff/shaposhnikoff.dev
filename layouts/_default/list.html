@@ -1,0 +1,26 @@
+{{ define "main" }}
+<header class="wrap section-head">
+  <div class="section-head__crumb">~/{{ .Section | default "home" }}</div>
+  <h1>{{ .Title }}</h1>
+  {{ with .Description }}<p class="section-head__lede">{{ . }}</p>{{ end }}
+</header>
+
+<div class="wrap">
+  {{ with .Content }}<div class="prose flow" style="max-width: var(--w-prose); margin-bottom: var(--s-7)">{{ . }}</div>{{ end }}
+
+  {{ if .Pages }}
+  <ul class="entry-list">
+    {{ range .Pages.ByDate.Reverse }}
+      <li class="entry">
+        <span class="entry__date">{{ .Date.Format "2006-01-02" }}</span>
+        <div>
+          <div class="entry__title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></div>
+          {{ with .Summary }}<div class="entry__sum">{{ . | plainify | truncate 200 }}</div>{{ end }}
+          {{ with .Params.tags }}<div class="entry__tags">{{ range . }}<span>{{ . }}</span>{{ end }}</div>{{ end }}
+        </div>
+      </li>
+    {{ end }}
+  </ul>
+  {{ end }}
+</div>
+{{ end }}

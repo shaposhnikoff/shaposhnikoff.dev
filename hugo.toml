@@ -1,0 +1,118 @@
+baseURL      = "https://shaposhnikoff.dev/"
+languageCode = "en-us"
+title        = "Max Shaposhnikoff"
+theme        = ""
+enableRobotsTXT = true
+enableGitInfo   = true
+enableEmoji     = false
+summaryLength   = 40
+timeout         = "60s"
+
+[params]
+  description    = "Max Shaposhnikoff — DevOps engineer, cloud infrastructure specialist, radio amateur."
+  author         = "Max Shaposhnikoff"
+  callsign       = "UT3UDX"          # set your amateur radio callsign here, e.g. "OK1XYZ"
+  location       = "Europe/UA"
+  email          = "max@shaposhnikoff.dev"
+  github         = "shaposhnikoff"
+  linkedin       = "shaposhnikoff"
+  mastodon       = ""
+  showReadingTime = true
+  showLastMod     = true
+  defaultTheme    = "auto"      # "auto" | "light" | "dark"
+  ogImage         = "/og-default.png"
+
+  [params.profile]
+    name    = "Max Shaposhnikoff"
+    role    = "DevOps · Cloud · Ham Radio"
+    summary = "I build reliable cloud infrastructure and operate weak-signal radio. This site is my long-form notebook."
+
+# ---- Markup ----------------------------------------------------------------
+
+[markup]
+  [markup.goldmark.renderer]
+    unsafe = true              # allow inline HTML in Markdown (used by shortcodes)
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel   = 4
+    ordered    = false
+  [markup.highlight]
+    style          = "github"           # overridden per-mode via CSS
+    noClasses      = false              # emit classes so we can theme them
+    lineNos        = false
+    codeFences     = true
+    guessSyntax    = true
+    tabWidth       = 2
+
+# ---- Outputs ---------------------------------------------------------------
+
+[outputs]
+  home    = ["HTML", "RSS", "JSON"]
+  section = ["HTML", "RSS"]
+
+[outputFormats]
+  [outputFormats.RSS]
+    mediatype = "application/rss+xml"
+    baseName  = "feed"
+
+# ---- Menus -----------------------------------------------------------------
+
+[[menu.main]]
+  name   = "home"
+  url    = "/"
+  weight = 10
+
+[[menu.main]]
+  name   = "cv"
+  url    = "/cv/"
+  weight = 20
+
+[[menu.main]]
+  name   = "ham"
+  url    = "/ham/"
+  weight = 30
+
+[[menu.main]]
+  name   = "cloud"
+  url    = "/cloud/"
+  weight = 40
+
+[[menu.main]]
+  name   = "devops"
+  url    = "/devops/"
+  weight = 50
+
+[[menu.main]]
+  name   = "projects"
+  url    = "/projects/"
+  weight = 60
+
+[[menu.main]]
+  name   = "blog"
+  url    = "/blog/"
+  weight = 70
+
+[[menu.main]]
+  name   = "contact"
+  url    = "/contact/"
+  weight = 80
+
+# ---- Taxonomies ------------------------------------------------------------
+
+[taxonomies]
+  tag    = "tags"
+  topic  = "topics"
+
+# ---- Privacy ---------------------------------------------------------------
+
+[privacy]
+  [privacy.youtube]
+    privacyEnhanced = true
+
+# ---- Build -----------------------------------------------------------------
+
+[build]
+  writeStats = false
+
+[minify]
+  minifyOutput = true
