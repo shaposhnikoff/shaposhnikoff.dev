@@ -15,6 +15,8 @@ yes, no, or "let's talk" in one round.
   <dt>radio</dt>     <dd>SSB / FT8 / CW · 20 & 40 m · EU evenings UTC</dd>
   <dt>pgp</dt>       <dd><code>0xA1B2 C3D4 E5F6 0789</code> · <a href="/gpg.txt">gpg.txt</a></dd>
 
+</dl>
+
 ```
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -69,5 +71,5 @@ WCdXxlF1Fg==
 =ukDe
 -----END PGP PUBLIC KEY BLOCK-----
 ```
-</dl>
+
 

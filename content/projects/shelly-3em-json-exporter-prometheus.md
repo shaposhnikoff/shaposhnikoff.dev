@@ -1,5 +1,5 @@
 ---
-title: "shelly_3em_json_exporter_prometheus"
+title: "shelly_3em_json_exporter_prom"
 date: 2026-02-08
 summary: "Prometheus monitoring setup for Shelly 3EM through JSON Exporter."
 status: "active"

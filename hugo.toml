@@ -63,6 +63,11 @@ timeout         = "60s"
   weight = 10
 
 [[menu.main]]
+  name   = "Жорик"
+  url    = "/mydog/"
+  weight = 20
+
+[[menu.main]]
   name   = "cv"
   url    = "/cv/"
   weight = 20
