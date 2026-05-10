@@ -13,7 +13,7 @@ yes, no, or "let's talk" in one round.
   <dt>github</dt>    <dd><a href="https://github.com/shaposhnikoff">github.com/shaposhnikoff</a></dd>
   <dt>linkedin</dt>  <dd><a href="https://linkedin.com/in/shaposhnikoff">linkedin.com/in/shaposhnikoff</a></dd>
   <dt>radio</dt>     <dd>SSB / FT8 / CW · 20 & 40 m · EU evenings UTC</dd>
-  <dt>pgp</dt>       <dd><code>0xA1B2 C3D4 E5F6 0789</code> · <a href="/pgp.txt">pgp.txt</a></dd>
+  <dt>pgp</dt>       <dd><code>0xA1B2 C3D4 E5F6 0789</code> · <a href="/gpg.txt">gpg.txt</a></dd>
 </dl>
 
 ## Quick form
