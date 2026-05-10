@@ -1,0 +1,49 @@
+{{ define "main" }}
+<section class="hero">
+  <div class="wrap hero__inner">
+    <div>
+      <div class="hero__eyebrow"><span class="dot"></span>online · {{ now.Format "2006-01-02" }}</div>
+      <h1>{{ .Site.Params.profile.name }}</h1>
+      <p class="hero__lede">{{ .Site.Params.profile.summary }}</p>
+    </div>
+    <dl class="hero__meta" aria-label="Profile metadata">
+      <dt>role</dt>     <dd>{{ .Site.Params.profile.role }}</dd>
+      <dt>locale</dt>   <dd>{{ .Site.Params.location }}</dd>
+      {{ with .Site.Params.callsign }}<dt>callsign</dt><dd>{{ . }}</dd>{{ end }}
+      <dt>email</dt>    <dd><a href="mailto:{{ .Site.Params.email }}">{{ .Site.Params.email }}</a></dd>
+      <dt>github</dt>   <dd><a href="https://github.com/{{ .Site.Params.github }}">/{{ .Site.Params.github }}</a></dd>
+    </dl>
+  </div>
+</section>
+
+<section class="wrap" style="margin-top: var(--s-7)">
+  <h2 class="mono-sm" style="margin-bottom: var(--s-4)">// areas</h2>
+  <div class="topics">
+    <a class="topic" href="{{ "cloud/"   | relURL }}"><span class="topic__label">/cloud</span><span class="topic__title">Cloud infrastructure</span><span class="topic__sum">AWS, GCP, multi-account landing zones, cost & isolation.</span><span class="topic__arrow">→</span></a>
+    <a class="topic" href="{{ "devops/"  | relURL }}"><span class="topic__label">/devops</span><span class="topic__title">DevOps practice</span><span class="topic__sum">Pipelines, GitOps, Kubernetes, observability.</span><span class="topic__arrow">→</span></a>
+    <a class="topic" href="{{ "ham/"     | relURL }}"><span class="topic__label">/ham</span><span class="topic__title">Amateur radio</span><span class="topic__sum">HF/VHF, weak-signal modes, antennas, propagation logs.</span><span class="topic__arrow">→</span></a>
+    <a class="topic" href="{{ "projects/"| relURL }}"><span class="topic__label">/projects</span><span class="topic__title">Projects</span><span class="topic__sum">Tools, libraries and experiments I publish.</span><span class="topic__arrow">→</span></a>
+  </div>
+</section>
+
+<section class="wrap" style="margin-top: var(--s-7)">
+  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <h2 class="mono-sm">// recent writing</h2>
+    <a class="mono-sm" href="{{ "blog/" | relURL }}">all posts →</a>
+  </div>
+  <ul class="entry-list" style="margin-top: var(--s-3)">
+    {{ range first 5 (where .Site.RegularPages "Section" "blog") }}
+      <li class="entry">
+        <span class="entry__date">{{ .Date.Format "2006-01-02" }}</span>
+        <div>
+          <div class="entry__title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></div>
+          {{ with .Summary }}<div class="entry__sum">{{ . | plainify | truncate 160 }}</div>{{ end }}
+          {{ with .Params.tags }}
+            <div class="entry__tags">{{ range . }}<span>{{ . }}</span>{{ end }}</div>
+          {{ end }}
+        </div>
+      </li>
+    {{ end }}
+  </ul>
+</section>
+{{ end }}

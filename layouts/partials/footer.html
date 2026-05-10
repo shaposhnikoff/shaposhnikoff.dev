@@ -1,0 +1,13 @@
+<footer class="site-footer">
+  <div class="wrap site-footer__row">
+    <div>
+      <div>© {{ now.Format "2006" }} {{ .Site.Params.author }} · built with Hugo · hosted on Cloudflare Pages</div>
+      <div class="muted">{{ with .Site.Params.callsign }}<span>callsign {{ . }} · </span>{{ end }}{{ with .Site.Params.location }}{{ . }} · {{ end }}<a href="{{ "feed.xml" | relURL }}">rss</a></div>
+    </div>
+    <pre class="ascii" aria-hidden="true">  ░░  ▄▄  ░░
+  ▒▒  ██  ▒▒
+  ▓▓  ██  ▓▓
+  ──  ██  ──
+</pre>
+  </div>
+</footer>
