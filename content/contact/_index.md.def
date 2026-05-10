@@ -71,3 +71,13 @@ WCdXxlF1Fg==
 ```
 </dl>
 
+## Quick form
+
+Plain mail without the spam-filter dance.
+
+<form class="form" action="https://formspree.io/f/your-id" method="POST">
+  <label>name<input name="name" type="text" required></label>
+  <label>email<input name="email" type="email" required></label>
+  <label>message<textarea name="message" rows="6" required></textarea></label>
+  <button type="submit">send →</button>
+</form>
