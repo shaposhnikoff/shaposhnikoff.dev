@@ -9,7 +9,7 @@ you're proposing work, please include enough detail that I can answer
 yes, no, or "let's talk" in one round.
 
 <dl class="contact-row">
-  <dt>email</dt>     <dd><a href="mailto:hello@shaposhnikoff.dev">hello@shaposhnikoff.dev</a></dd>
+  <dt>email</dt>     <dd><a href="mailto:max@shaposhnikoff.dev">max@shaposhnikoff.dev</a></dd>
   <dt>github</dt>    <dd><a href="https://github.com/shaposhnikoff">github.com/shaposhnikoff</a></dd>
   <dt>linkedin</dt>  <dd><a href="https://linkedin.com/in/shaposhnikoff">linkedin.com/in/shaposhnikoff</a></dd>
   <dt>radio</dt>     <dd>SSB / FT8 / CW · 20 & 40 m · EU evenings UTC</dd>
