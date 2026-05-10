@@ -1,0 +1,29 @@
+{{ define "main" }}
+<header class="wrap section-head">
+  <div class="section-head__crumb">~/projects</div>
+  <h1>{{ .Title }}</h1>
+  {{ with .Description }}<p class="section-head__lede">{{ . }}</p>{{ end }}
+</header>
+
+<div class="wrap">
+  {{ with .Content }}<div class="prose flow" style="max-width: var(--w-prose); margin-bottom: var(--s-6)">{{ . }}</div>{{ end }}
+
+  <div class="cards">
+    {{ range .Pages.ByDate.Reverse }}
+      <a class="card" href="{{ .RelPermalink }}">
+        <span class="card__corner" aria-hidden="true"></span>
+        <div class="card__head">
+          <span>{{ .Date.Format "2006" }}</span>
+          {{ with .Params.status }}<span class="pill" data-status="{{ . }}">{{ . }}</span>{{ end }}
+        </div>
+        <div class="card__title">{{ .Title }}</div>
+        <div class="card__sum">{{ .Summary | plainify | truncate 160 }}</div>
+        <div class="card__foot">
+          <span>{{ with .Params.stack }}{{ delimit . " · " }}{{ end }}</span>
+          <span>read →</span>
+        </div>
+      </a>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

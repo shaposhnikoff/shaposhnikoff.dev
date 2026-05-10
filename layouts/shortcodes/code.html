@@ -1,0 +1,2 @@
+<div class="code-caption"><span>{{ .Get "file" | default "" }}</span><span>{{ .Get "lang" | default "" }}</span></div>
+{{ highlight (trim .Inner "\n\r") (.Get "lang" | default "text") "" }}
