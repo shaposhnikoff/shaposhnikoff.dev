@@ -1,0 +1,17 @@
+{{- $p := .Site.Params -}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": {{ $p.author | jsonify }},
+  "url":  {{ .Site.BaseURL | jsonify }},
+  "email": {{ printf "mailto:%s" $p.email | jsonify }},
+  "jobTitle": "DevOps Engineer",
+  "knowsAbout": ["Cloud Infrastructure","DevOps","Kubernetes","Terraform","Amateur Radio"],
+  "sameAs": [
+    {{- with $p.github }}{{ printf "https://github.com/%s" . | jsonify }}{{ end -}}
+    {{- with $p.linkedin }},{{ printf "https://linkedin.com/in/%s" . | jsonify }}{{ end -}}
+    {{- with $p.mastodon }},{{ . | jsonify }}{{ end -}}
+  ]
+}
+</script>

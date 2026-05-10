@@ -1,0 +1,4 @@
+<div class="note" data-kind="{{ .Get "kind" | default "info" }}"{{ with .Get "label" }} aria-label="{{ . }}"{{ end }}>
+  <div class="note__label">{{ (.Get "label") | default (printf "// %s" (.Get "kind" | default "note")) }}</div>
+  {{ .Inner | markdownify }}
+</div>

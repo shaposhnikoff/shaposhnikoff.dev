@@ -1,0 +1,6 @@
+{{- $user := .Get "user" | default "max" -}}
+{{- $host := .Get "host" | default "lab" -}}
+<div class="term">
+  <div class="term__bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ $user }}@{{ $host }}: ~/{{ .Get "cwd" | default "" }}</span></div>
+  <pre class="term__body">{{ .Inner | safeHTML }}</pre>
+</div>
