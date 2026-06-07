@@ -1,27 +1,27 @@
 ---
-title: "DHCP, DNS и базовая маршрутизация для нескольких VLAN"
+title: "DHCP, DNS, and basic routing for multiple VLANs"
 date: 2026-03-16
-summary: "L3-основа для VLAN в RouterOS 7: gateway addresses, DHCP pools, DNS cache, routes и interface lists."
+summary: "The L3 foundation for VLANs in RouterOS 7: gateway addresses, DHCP pools, DNS cache, routes, and interface lists."
 tags: ["mikrotik","routeros","dhcp","dns","routing"]
 topics: ["networking"]
 toc: true
 ---
 
-# DHCP, DNS и базовая маршрутизация для нескольких VLAN
+# DHCP, DNS, and basic routing for multiple VLANs
 
-После VLAN filtering каждый сегмент должен получить L3-основу: gateway, DHCP, DNS и маршрутизацию. На этом этапе сеть начинает быть удобной для клиентов, но еще требует аккуратной security policy.
+After VLAN filtering, every segment needs an L3 foundation: gateway, DHCP, DNS, and routing. At this stage the network becomes convenient for clients, but it still needs a careful security policy.
 
-MikroTik RouterOS 7 хорошо подходит для базового DHCP/DNS в небольшой сети, если не превращать DNS cache в open resolver и не забывать firewall.
+MikroTik RouterOS 7 works well for basic DHCP/DNS in a small network if you do not turn the DNS cache into an open resolver and do not forget the firewall.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Bridge VLAN filtering доставил VLAN до router CPU. Теперь для каждой VLAN создаются IP addresses, pools, DHCP servers и DNS-настройки.
+Bridge VLAN filtering delivered VLANs to the router CPU. Now IP addresses, pools, DHCP servers, and DNS settings are created for each VLAN.
 
-Firewall hardening будет в следующей статье. Здесь мы готовим сервисы, которые firewall потом должен разрешить только нужным сегментам.
+Firewall hardening comes in the next article. Here we prepare services that the firewall must later allow only for the right segments.
 
-## L3 interfaces и gateway
+## L3 interfaces and gateway
 
-Для каждой VLAN interface задается gateway address:
+Each VLAN interface gets a gateway address:
 
 ```routeros
 /ip address
@@ -31,11 +31,11 @@ add address=10.10.30.1/24 interface=vlan30-guest comment="Guest gateway"
 add address=10.10.40.1/24 interface=vlan40-iot comment="IoT gateway"
 ```
 
-Адреса - пример. Используйте свой addressing plan и не конфликтуйте с VPN/site-to-site сетями.
+The addresses are examples. Use your addressing plan and avoid conflicts with VPN/site-to-site networks.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением L3 и DHCP:
+Before changing L3 and DHCP:
 
 ```routeros
 /system backup save name=before-dhcp-dns-routing
@@ -43,7 +43,7 @@ add address=10.10.40.1/24 interface=vlan40-iot comment="IoT gateway"
 /system console safe-mode
 ```
 
-Проверьте, что VLAN interfaces существуют и active:
+Check that VLAN interfaces exist and are active:
 
 ```routeros
 /interface vlan print
@@ -52,7 +52,7 @@ add address=10.10.40.1/24 interface=vlan40-iot comment="IoT gateway"
 
 ## DHCP pools
 
-Создайте отдельный pool для каждой клиентской VLAN:
+Create a separate pool for each client VLAN:
 
 ```routeros
 /ip pool
@@ -62,7 +62,7 @@ add name=pool-guest ranges=10.10.30.100-10.10.30.199
 add name=pool-iot ranges=10.10.40.100-10.10.40.199
 ```
 
-Не отдавайте весь `/24` в DHCP. Оставьте место для статических адресов, инфраструктуры и резервов.
+Do not give the whole `/24` to DHCP. Leave room for static addresses, infrastructure, and reserves.
 
 ## DHCP servers
 
@@ -74,7 +74,7 @@ add name=dhcp-guest interface=vlan30-guest address-pool=pool-guest lease-time=8h
 add name=dhcp-iot interface=vlan40-iot address-pool=pool-iot lease-time=1d disabled=no
 ```
 
-Для management VLAN иногда DHCP делают ограниченным или используют static leases. Это зависит от политики.
+For the management VLAN, DHCP is sometimes limited or replaced with static leases. That depends on policy.
 
 ## DHCP network options
 
@@ -86,22 +86,22 @@ add address=10.10.30.0/24 gateway=10.10.30.1 dns-server=10.10.30.1
 add address=10.10.40.0/24 gateway=10.10.40.1 dns-server=10.10.40.1
 ```
 
-Если DNS filtering будет на отдельном AdGuard Home/Pi-hole, DNS server можно указывать его адрес. Главное - не забыть firewall и DNS enforcement, если политика требует.
+If DNS filtering runs on a separate AdGuard Home/Pi-hole, you can specify that address as DNS server. The important part is not to forget firewall and DNS enforcement if policy requires them.
 
-## DNS cache на MikroTik
+## DNS cache on MikroTik
 
-Базовая настройка:
+Basic setup:
 
 ```routeros
 /ip dns
 set servers=1.1.1.1,8.8.8.8 allow-remote-requests=yes
 ```
 
-`allow-remote-requests=yes` означает, что клиенты смогут использовать MikroTik как DNS resolver. Это удобно, но DNS не должен быть доступен с WAN. Это будет закреплено firewall-правилами.
+`allow-remote-requests=yes` means clients can use MikroTik as a DNS resolver. This is convenient, but DNS must not be reachable from WAN. Firewall rules will enforce that.
 
 ## Default route
 
-Проверьте маршрут в интернет:
+Check the internet route:
 
 ```routeros
 /ip route print
@@ -109,11 +109,11 @@ set servers=1.1.1.1,8.8.8.8 allow-remote-requests=yes
 /ping google.com
 ```
 
-Если WAN получает маршрут по DHCP/PPPoE, он может появиться автоматически. Если WAN static, default route нужно добавить явно по данным провайдера.
+If WAN receives the route via DHCP/PPPoE, it may appear automatically. If WAN is static, add the default route explicitly using provider data.
 
 ## Interface lists
 
-Добавьте VLAN interfaces в списки для будущего firewall:
+Add VLAN interfaces to lists for the future firewall:
 
 ```routeros
 /interface list member
@@ -123,11 +123,11 @@ add list=GUEST interface=vlan30-guest
 add list=IOT interface=vlan40-iot
 ```
 
-Если списков еще нет, создайте их заранее. Это делает правила понятнее.
+If the lists do not exist yet, create them first. This makes rules easier to understand.
 
-## Как проверить результат
+## How to verify the result
 
-На MikroTik:
+On MikroTik:
 
 ```routeros
 /ip dhcp-server print
@@ -138,33 +138,33 @@ add list=IOT interface=vlan40-iot
 /ip route print
 ```
 
-На клиентах:
+On clients:
 
-- клиент получает адрес из правильной подсети;
-- gateway соответствует VLAN;
-- DNS отвечает;
-- ping gateway проходит;
-- internet работает там, где разрешен;
-- клиент из Guest не должен получать LAN-адрес.
+- the client receives an address from the correct subnet;
+- gateway matches the VLAN;
+- DNS responds;
+- ping to gateway works;
+- internet works where allowed;
+- a Guest client must not receive a LAN address.
 
-## Частые ошибки
+## Common mistakes
 
-Создать DHCP server на wrong interface. Клиенты не получают адрес или получают его не в той VLAN.
+Creating a DHCP server on the wrong interface. Clients either receive no address or receive one from the wrong VLAN.
 
-Забыть `dhcp-server network`: адреса выдаются, но gateway/DNS неправильные.
+Forgetting `dhcp-server network`: addresses are handed out, but gateway/DNS are wrong.
 
-Включить DNS cache и открыть его с WAN.
+Enabling DNS cache and exposing it from WAN.
 
-Не оставить адреса для статических infrastructure devices.
+Not leaving addresses for static infrastructure devices.
 
 ## Security notes
 
-DHCP и DNS - инфраструктурные сервисы. Guest и IoT должны иметь доступ к ним только в своей VLAN или к явно разрешенному resolver. Это не повод давать Guest доступ к management-сегменту.
+DHCP and DNS are infrastructure services. Guest and IoT should access them only in their own VLAN or through an explicitly allowed resolver. This is not a reason to give Guest access to the management segment.
 
-DNS policy будет отдельной темой. Здесь важно не сделать MikroTik открытым DNS resolver в интернет.
+DNS policy is a separate topic. Here the key point is to avoid making MikroTik an open DNS resolver on the internet.
 
-## Мини-вывод
+## Short takeaway
 
-Каждая VLAN получает gateway, DHCP pool, DHCP server и DNS-логику. После этого сеть становится рабочей для клиентов, но security между сегментами появится только после firewall hardening.
+Each VLAN gets a gateway, DHCP pool, DHCP server, and DNS logic. After that, the network becomes usable for clients, but security between segments appears only after firewall hardening.
 
-Следующая статья будет про firewall: input, forward, WAN drop и management access.
+The next article is about firewall: input, forward, WAN drop, and management access.

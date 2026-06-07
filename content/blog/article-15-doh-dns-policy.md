@@ -1,58 +1,58 @@
 ---
-title: "DoH DNS и DNS policy: MikroTik DNS cache, enforcement и ограничения"
+title: "DoH DNS and DNS policy: MikroTik DNS cache, enforcement, and limitations"
 date: 2026-03-25
-summary: "DNS policy на MikroTik: DNS cache, DoH upstream, enforcement по VLAN и ограничения блокировки клиентского DoH."
+summary: "DNS policy on MikroTik: DNS cache, DoH upstream, enforcement by VLAN, and the limits of blocking client DoH."
 tags: ["mikrotik","routeros","dns","doh","security"]
 topics: ["networking"]
 toc: true
 ---
 
-# DoH DNS и DNS policy: MikroTik DNS cache, enforcement и ограничения
+# DoH DNS and DNS policy: MikroTik DNS cache, enforcement, and limitations
 
-DNS policy - это не только выбор resolver. Это решение, кто в сети может использовать какие DNS-серверы, как обрабатываются локальные имена, нужен ли filtering, что делать с DoH и как не превратить роутер в open resolver.
+DNS policy is not only choosing a resolver. It is deciding who in the network may use which DNS servers, how local names are handled, whether filtering is needed, what to do with DoH, and how not to turn the router into an open resolver.
 
-MikroTik может быть DNS cache и точкой enforcement, но не решает все проблемы приватности и фильтрации сам по себе.
+MikroTik can be a DNS cache and enforcement point, but it does not solve every privacy and filtering problem by itself.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-У нас есть VLAN, firewall, Guest, IoT и WireGuard. Теперь нужно определить DNS-поведение для разных сегментов:
+We have VLANs, firewall, Guest, IoT, and WireGuard. Now we need to define DNS behavior for different segments:
 
-- LAN может использовать локальный DNS cache;
-- Guest может использовать только разрешенный resolver;
-- IoT может быть принудительно направлен на filtering DNS;
-- VPN-клиенты могут получать внутренний DNS;
-- WAN не должен иметь доступ к DNS resolver на роутере.
+- LAN can use the local DNS cache;
+- Guest can use only an approved resolver;
+- IoT can be forced to a filtering DNS;
+- VPN clients can receive internal DNS;
+- WAN must not have access to the router's DNS resolver.
 
-## Что такое DNS cache на MikroTik
+## What MikroTik DNS cache is
 
-RouterOS может принимать DNS-запросы от клиентов и пересылать их upstream resolver:
+RouterOS can accept DNS queries from clients and forward them to an upstream resolver:
 
 ```routeros
 /ip dns
 set servers=1.1.1.1,8.8.8.8 allow-remote-requests=yes
 ```
 
-`allow-remote-requests=yes` означает "отвечать клиентам", а не "открыть DNS всем". Firewall должен закрывать DNS с WAN.
+`allow-remote-requests=yes` means "answer clients", not "open DNS to everyone". Firewall must block DNS from WAN.
 
-## DoH на MikroTik
+## DoH on MikroTik
 
-RouterOS поддерживает DNS-over-HTTPS как upstream для самого роутера. Это может защитить DNS-запросы между MikroTik и upstream DoH provider от простого перехвата провайдером, но не дает полной приватности:
+RouterOS supports DNS-over-HTTPS as an upstream for the router itself. This can protect DNS queries between MikroTik and the upstream DoH provider from simple ISP interception, but it does not provide complete privacy:
 
-- DoH provider видит запросы;
-- SNI/IP destination все еще могут раскрывать многое;
-- клиенты могут использовать собственный DoH в браузере;
-- DoH over 443 трудно отличить от обычного HTTPS без более сложных средств.
+- the DoH provider sees queries;
+- SNI/IP destination can still reveal a lot;
+- clients can use their own DoH in the browser;
+- DoH over 443 is hard to distinguish from normal HTTPS without more complex tools.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением DNS policy:
+Before changing DNS policy:
 
 ```routeros
 /system backup save name=before-dns-policy
 /export file=before-dns-policy
 ```
 
-Проверьте текущую DNS-настройку:
+Check the current DNS configuration:
 
 ```routeros
 /ip dns print
@@ -60,18 +60,18 @@ RouterOS поддерживает DNS-over-HTTPS как upstream для само
 /ip firewall nat print
 ```
 
-Не включайте DNS для клиентов без firewall-защиты от WAN.
+Do not enable DNS for clients without firewall protection from WAN.
 
 ## DNS enforcement
 
-Если политика требует, чтобы клиенты использовали только ваш resolver, можно:
+If policy requires clients to use only your resolver, you can:
 
-- разрешить DNS к MikroTik или filtering server;
-- заблокировать direct UDP/TCP 53 наружу;
-- при необходимости redirect DNS на локальный resolver;
-- отдельно принять ограничения DoH/DoT.
+- allow DNS to MikroTik or a filtering server;
+- block direct UDP/TCP 53 outward;
+- redirect DNS to a local resolver if needed;
+- explicitly accept the limits of DoH/DoT.
 
-Пример block direct DNS:
+Example direct DNS block:
 
 ```routeros
 /ip firewall filter
@@ -79,7 +79,7 @@ add chain=forward action=drop protocol=udp dst-port=53 out-interface-list=WAN sr
 add chain=forward action=drop protocol=tcp dst-port=53 out-interface-list=WAN src-address-list=local-subnets comment="block direct DNS TCP"
 ```
 
-Redirect может быть полезен, но должен быть документирован:
+Redirect can be useful, but it must be documented:
 
 ```routeros
 /ip firewall nat
@@ -87,23 +87,23 @@ add chain=dstnat protocol=udp dst-port=53 src-address-list=local-subnets action=
 add chain=dstnat protocol=tcp dst-port=53 src-address-list=local-subnets action=redirect to-ports=53 comment="redirect DNS TCP to router"
 ```
 
-Не применяйте redirect без понимания, какие VLAN и устройства он затронет.
+Do not apply redirect without understanding which VLANs and devices it affects.
 
-## Разные политики для VLAN
+## Different policies for VLANs
 
 | VLAN | DNS policy |
 | --- | --- |
-| Management | trusted resolver, возможно без filtering |
-| LAN | local DNS cache или filtering DNS |
+| Management | trusted resolver, possibly without filtering |
+| LAN | local DNS cache or filtering DNS |
 | Guest | filtering DNS, no direct DNS |
 | IoT | strict filtering DNS, no direct DNS |
-| VPN | internal DNS для локальных имен |
+| VPN | internal DNS for local names |
 
-Это может быть реализовано через MikroTik DNS cache, AdGuard Home/Pi-hole, NextDNS или их комбинацию.
+This can be implemented through MikroTik DNS cache, AdGuard Home/Pi-hole, NextDNS, or a combination.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
 ```routeros
 /ip dns cache print
@@ -112,34 +112,34 @@ add chain=dstnat protocol=tcp dst-port=53 src-address-list=local-subnets action=
 /resolve google.com
 ```
 
-С клиента:
+From a client:
 
-- DNS отвечает;
-- direct `8.8.8.8:53` заблокирован, если такова policy;
-- локальные имена резолвятся;
-- Guest/IoT не обходят policy через обычный DNS;
-- DoH bypass описан как ограничение, а не скрыт.
+- DNS responds;
+- direct `8.8.8.8:53` is blocked if that is the policy;
+- local names resolve;
+- Guest/IoT do not bypass policy through regular DNS;
+- DoH bypass is documented as a limitation, not hidden.
 
-## Частые ошибки
+## Common mistakes
 
-Включить `allow-remote-requests=yes` и открыть DNS с WAN.
+Enabling `allow-remote-requests=yes` and exposing DNS from WAN.
 
-Обещать, что DoH полностью решает приватность.
+Promising that DoH fully solves privacy.
 
-Блокировать UDP 53 и забыть TCP 53.
+Blocking UDP 53 and forgetting TCP 53.
 
-Ломать корпоративные/VPN DNS-сценарии глобальным redirect.
+Breaking corporate/VPN DNS scenarios with a global redirect.
 
-Пытаться полностью заблокировать DoH одним firewall-правилом.
+Trying to fully block DoH with one firewall rule.
 
 ## Security notes
 
-DNS policy должна быть частью firewall policy. Если Guest не должен ходить во внутренние сети, DNS-исключение не должно открывать ему management.
+DNS policy must be part of firewall policy. If Guest must not access internal networks, a DNS exception must not open management to it.
 
-DoH - это защита канала до resolver, а не универсальная защита от tracking, malware и утечек.
+DoH protects the channel to the resolver; it is not universal protection against tracking, malware, or leaks.
 
-## Мини-вывод
+## Short takeaway
 
-MikroTik может быть DNS cache и enforcement point, но DNS policy нужно проектировать по VLAN. DoH полезен, но имеет ограничения, особенно когда клиенты используют собственный HTTPS-трафик.
+MikroTik can be a DNS cache and enforcement point, but DNS policy must be designed per VLAN. DoH is useful, but has limitations, especially when clients use their own HTTPS traffic.
 
-Следующая статья будет про DNS filtering: AdGuard Home, Pi-hole, NextDNS и разные политики для VLAN.
+The next article is about DNS filtering: AdGuard Home, Pi-hole, NextDNS, and different policies for VLANs.

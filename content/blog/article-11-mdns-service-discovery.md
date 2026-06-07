@@ -1,77 +1,77 @@
 ---
-title: "mDNS и service discovery между VLAN: Chromecast, AirPlay, принтеры и smart-home"
+title: "mDNS and service discovery between VLANs: Chromecast, AirPlay, printers, and smart home"
 date: 2026-03-21
-summary: "Как проектировать mDNS и service discovery между VLAN без отмены изоляции IoT, Guest и LAN."
+summary: "How to design mDNS and service discovery between VLANs without undoing IoT, Guest, and LAN isolation."
 tags: ["mikrotik","routeros","mdns","service-discovery","vlan"]
 topics: ["networking"]
 toc: true
 ---
 
-# mDNS и service discovery между VLAN: Chromecast, AirPlay, принтеры и smart-home
+# mDNS and service discovery between VLANs: Chromecast, AirPlay, printers, and smart home
 
-После разделения сети на VLAN часть удобных функций может перестать работать: телефон не видит Chromecast, ноутбук не находит принтер, Home Assistant не обнаруживает устройство. Это не значит, что VLAN настроены неправильно. Часто причина в service discovery.
+After splitting the network into VLANs, some convenient features may stop working: a phone does not see Chromecast, a laptop cannot find a printer, Home Assistant does not discover a device. That does not mean the VLANs are configured incorrectly. The cause is often service discovery.
 
-mDNS и похожие механизмы рассчитаны на локальный broadcast/multicast domain. Между VLAN они не проходят автоматически.
+mDNS and similar mechanisms are designed for a local broadcast/multicast domain. They do not cross VLANs automatically.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-IoT isolation запретила IoT инициировать доступ в LAN. Но LAN иногда должна находить и использовать IoT-устройства. Нужно аккуратно решить discovery, не разрушая segmentation.
+IoT isolation blocked IoT from initiating access to LAN. But LAN sometimes needs to find and use IoT devices. Discovery must be handled carefully without destroying segmentation.
 
-Эта статья про discovery-plane, а не про broad allow между VLAN.
+This article is about the discovery plane, not broad allow between VLANs.
 
-## Основные понятия
+## Basic concepts
 
-mDNS использует multicast `224.0.0.251:5353` для IPv4 и `ff02::fb` для IPv6. Он обычно не маршрутизируется между VLAN.
+mDNS uses multicast `224.0.0.251:5353` for IPv4 and `ff02::fb` for IPv6. It is normally not routed between VLANs.
 
-SSDP/UPnP использует другие multicast/broadcast механизмы и имеет свои риски. UPnP для автоматического port forwarding наружу по умолчанию нежелателен.
+SSDP/UPnP uses other multicast/broadcast mechanisms and has its own risks. UPnP for automatic outbound port forwarding is undesirable by default.
 
-Discovery - это не то же самое, что доступ к сервису. Можно обнаружить устройство, но firewall все равно должен разрешить только нужные соединения.
+Discovery is not the same as service access. A device can be discovered, but the firewall must still allow only the required connections.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением multicast/discovery/firewall:
+Before changing multicast/discovery/firewall:
 
 ```routeros
 /system backup save name=before-mdns-discovery
 /export file=before-mdns-discovery
 ```
 
-Сначала составьте список:
+First make a list:
 
-- какие устройства нужно обнаруживать;
-- из какой VLAN их должны видеть;
-- какие протоколы нужны: mDNS, SSDP, vendor-specific;
-- какие реальные TCP/UDP порты нужны после discovery.
+- which devices need to be discovered;
+- from which VLAN they must be visible;
+- which protocols are needed: mDNS, SSDP, vendor-specific;
+- which real TCP/UDP ports are needed after discovery.
 
-## Подходы к mDNS между VLAN
+## Approaches to mDNS between VLANs
 
-Практичные варианты:
+Practical options:
 
-| Подход | Когда подходит | Риски |
+| Approach | When it fits | Risks |
 | --- | --- | --- |
-| mDNS reflector/repeater | Нужно пробросить discovery между LAN и IoT | Можно раскрыть лишние сервисы |
-| Home Assistant как центр | Smart-home управляется через один контроллер | Требует явных firewall rules |
-| Split by design | Устройства, которым нужен LAN discovery, живут в LAN | Меньше изоляции |
-| Не пробрасывать discovery | IoT cloud-only или вручную заданные IP | Меньше удобства |
+| mDNS reflector/repeater | Discovery must cross between LAN and IoT | May expose extra services |
+| Home Assistant as the center | Smart home is controlled through one controller | Requires explicit firewall rules |
+| Split by design | Devices that need LAN discovery live in LAN | Less isolation |
+| Do not forward discovery | IoT is cloud-only or manually addressed | Less convenience |
 
-RouterOS сам по себе не является универсальным mDNS gateway для всех сценариев. Часто используют отдельный reflector на Linux/Home Assistant/Avahi или возможности конкретного контроллера.
+RouterOS itself is not a universal mDNS gateway for every scenario. A separate reflector on Linux/Home Assistant/Avahi or a specific controller feature is often used.
 
-## Firewall для discovery и доступа
+## Firewall for discovery and access
 
-Не делайте так:
+Do not do this:
 
 ```text
 allow LAN -> IoT any
 allow IoT -> LAN any
 ```
 
-Лучше разделить:
+Split the problem instead:
 
-- discovery только между нужными VLAN;
-- доступ только от конкретных controllers/clients к конкретным devices;
-- IoT -> LAN по-прежнему deny по умолчанию.
+- discovery only between required VLANs;
+- access only from specific controllers/clients to specific devices;
+- IoT -> LAN remains deny by default.
 
-Пример policy:
+Example policy:
 
 ```text
 LAN phones -> Chromecast: allow required ports
@@ -80,13 +80,13 @@ IoT -> LAN: deny by default
 IoT -> DNS/NTP/Internet: allow as needed
 ```
 
-## Chromecast, AirPlay, принтеры
+## Chromecast, AirPlay, printers
 
-Chromecast и AirPlay могут требовать не только mDNS, но и дополнительные TCP/UDP соединения. Принтеры могут использовать mDNS, IPP, LPR, RAW printing, vendor tools.
+Chromecast and AirPlay may require not only mDNS, but also additional TCP/UDP connections. Printers may use mDNS, IPP, LPR, RAW printing, or vendor tools.
 
-Не пытайтесь угадать все порты. Сначала проверьте документацию устройства, затем смотрите firewall logs и packet captures.
+Do not try to guess every port. First check device documentation, then look at firewall logs and packet captures.
 
-Полезные инструменты RouterOS:
+Useful RouterOS tools:
 
 ```routeros
 /tool torch interface=<interface-name>
@@ -94,22 +94,22 @@ Chromecast и AirPlay могут требовать не только mDNS, но
 /log print
 ```
 
-## IPv6 нюанс
+## IPv6 nuance
 
-Если IPv6 включен, discovery может происходить и по IPv6. Нельзя настраивать только IPv4 firewall и думать, что сегментация завершена. IPv6 firewall будет отдельной темой, но при troubleshooting discovery это нужно учитывать.
+If IPv6 is enabled, discovery may also happen over IPv6. You cannot configure only the IPv4 firewall and assume segmentation is complete. IPv6 firewall is a separate topic, but keep it in mind when troubleshooting discovery.
 
-## Как проверить результат
+## How to verify the result
 
-Проверяйте по слоям:
+Check by layers:
 
-1. Устройства находятся в правильных VLAN.
-2. IP connectivity разрешена только там, где нужно.
-3. Discovery-запросы доходят до reflector/controller.
-4. Клиент видит сервис.
-5. После discovery сервис реально открывается.
-6. IoT не получает лишний доступ в LAN.
+1. Devices are in the correct VLANs.
+2. IP connectivity is allowed only where needed.
+3. Discovery requests reach the reflector/controller.
+4. The client sees the service.
+5. After discovery, the service actually opens.
+6. IoT does not get extra access to LAN.
 
-Команды:
+Commands:
 
 ```routeros
 /ip firewall filter print stats
@@ -117,26 +117,26 @@ Chromecast и AirPlay могут требовать не только mDNS, но
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Разрешить весь трафик между LAN и IoT ради Chromecast.
+Allowing all traffic between LAN and IoT for Chromecast.
 
-Путать discovery и data-plane.
+Confusing discovery and data plane.
 
-Забыть IPv6 и получить обход IPv4-policy.
+Forgetting IPv6 and getting a bypass around IPv4 policy.
 
-Включить UPnP и случайно разрешить устройствам открывать порты наружу.
+Enabling UPnP and accidentally letting devices open ports outward.
 
-Не документировать исключения, из-за чего firewall превращается в набор временных правил.
+Not documenting exceptions, turning the firewall into a set of temporary rules.
 
 ## Security notes
 
-Discovery раскрывает информацию о сервисах. Чем больше VLAN видит mDNS-ответов, тем больше устройств становится discoverable.
+Discovery reveals information about services. The more VLANs see mDNS responses, the more devices become discoverable.
 
-Пробрасывайте только то, что нужно. Если Home Assistant может управлять устройством напрямую, не обязательно давать всем LAN-клиентам discovery ко всему IoT.
+Forward only what is needed. If Home Assistant can control a device directly, not every LAN client needs discovery for the whole IoT segment.
 
-## Мини-вывод
+## Short takeaway
 
-mDNS между VLAN - это отдельная задача, а не повод отменять изоляцию. Discovery нужно проектировать точечно: кто кого должен видеть, какой сервис нужен и какие firewall rules это сопровождают.
+mDNS between VLANs is a separate task, not a reason to cancel isolation. Design discovery precisely: who needs to see whom, which service is needed, and which firewall rules support it.
 
-Следующая статья будет про CAPsMAN в RouterOS 7: централизованный Wi-Fi, SSID и VLAN per SSID.
+The next article is about CAPsMAN in RouterOS 7: centralized Wi-Fi, SSID, and VLAN per SSID.

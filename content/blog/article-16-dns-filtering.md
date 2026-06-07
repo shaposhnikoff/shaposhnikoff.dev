@@ -1,59 +1,59 @@
 ---
-title: "DNS filtering: AdGuard Home, Pi-hole, NextDNS и разные политики для VLAN"
+title: "DNS filtering: AdGuard Home, Pi-hole, NextDNS, and different policies for VLANs"
 date: 2026-03-26
-summary: "DNS filtering per VLAN с AdGuard Home, Pi-hole, NextDNS, DHCP options и firewall enforcement."
+summary: "DNS filtering per VLAN with AdGuard Home, Pi-hole, NextDNS, DHCP options, and firewall enforcement."
 tags: ["mikrotik","dns-filtering","adguard","pi-hole","nextdns"]
 topics: ["networking"]
 toc: true
 ---
 
-# DNS filtering: AdGuard Home, Pi-hole, NextDNS и разные политики для VLAN
+# DNS filtering: AdGuard Home, Pi-hole, NextDNS, and different policies for VLANs
 
-DNS filtering помогает блокировать рекламу, malware-домены, трекеры и нежелательные категории. Но он работает только в рамках DNS-запросов, которые действительно проходят через выбранный resolver.
+DNS filtering helps block ads, malware domains, trackers, and unwanted categories. But it works only for DNS queries that actually pass through the selected resolver.
 
-В сети с VLAN фильтрация должна быть разной для разных сегментов: IoT и Guest обычно строже, Management осторожнее, LAN гибче.
+In a VLAN network, filtering should differ by segment: IoT and Guest are usually stricter, Management is more conservative, and LAN is more flexible.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-В предыдущей статье мы разобрали DNS cache, DoH и enforcement. Теперь выбираем filtering backend и связываем его с VLAN policy.
+In the previous article, we covered DNS cache, DoH, and enforcement. Now we choose the filtering backend and tie it to VLAN policy.
 
-MikroTik может направлять клиентов к фильтрующему resolver, но сам обычно не заменяет полноценный DNS filtering service.
+MikroTik can direct clients to a filtering resolver, but it usually does not replace a full DNS filtering service by itself.
 
-## Варианты filtering
+## Filtering options
 
-| Решение | Где работает | Плюсы | Минусы |
+| Solution | Where it runs | Pros | Cons |
 | --- | --- | --- | --- |
-| AdGuard Home | локальный сервер/container | Гибкие политики, UI, локальный контроль | Нужен отдельный host |
-| Pi-hole | локальный сервер/container | Простота, популярность | Меньше enterprise-политик |
-| NextDNS | cloud service | Удобные профили, DoH/DoT | Зависимость от внешнего сервиса |
-| MikroTik DNS static | router | Просто для локальных записей | Не полноценный filtering |
+| AdGuard Home | local server/container | Flexible policies, UI, local control | Requires a separate host |
+| Pi-hole | local server/container | Simple, popular | Fewer enterprise-style policies |
+| NextDNS | cloud service | Convenient profiles, DoH/DoT | Depends on an external service |
+| MikroTik DNS static | router | Simple for local records | Not full filtering |
 
-## Политики по VLAN
+## Policies by VLAN
 
-Пример:
+Example:
 
 | VLAN | Resolver | Policy |
 | --- | --- | --- |
-| Management | trusted DNS | Минимум фильтрации, максимум стабильности |
-| LAN | AdGuard/Pi-hole | Блок рекламы/malware, allowlist по необходимости |
+| Management | trusted DNS | Minimal filtering, maximum stability |
+| LAN | AdGuard/Pi-hole | Ads/malware block, allowlist as needed |
 | Guest | Strict filtering | Malware/adult/tracking block |
-| IoT | Strict filtering | Блок лишних cloud/tracking доменов осторожно |
-| VPN | Internal DNS | Локальные имена + нужный профиль |
+| IoT | Strict filtering | Carefully block unnecessary cloud/tracking domains |
+| VPN | Internal DNS | Local names plus the required profile |
 
-## Перед применением
+## Before applying anything
 
-Перед изменением DNS filtering:
+Before changing DNS filtering:
 
 ```routeros
 /system backup save name=before-dns-filtering
 /export file=before-dns-filtering
 ```
 
-Проверьте, где находится filtering server, его IP, доступность из VLAN и fallback behavior. Если DNS server упадет, клиенты могут потерять доступ к именам.
+Check where the filtering server is located, its IP, reachability from VLANs, and fallback behavior. If the DNS server fails, clients can lose name resolution.
 
 ## DHCP options
 
-Самый простой способ - выдавать нужный DNS через DHCP:
+The simplest way is to provide the required DNS through DHCP:
 
 ```routeros
 /ip dhcp-server network
@@ -62,11 +62,11 @@ set [find address=10.10.30.0/24] dns-server=<guest-filter-dns-ip>
 set [find address=10.10.40.0/24] dns-server=<iot-filter-dns-ip>
 ```
 
-Если filtering server один, разные политики можно делать по source subnet внутри AdGuard Home/Pi-hole/NextDNS profile, если решение это поддерживает.
+If there is one filtering server, different policies can be applied by source subnet inside AdGuard Home/Pi-hole/NextDNS profile, if the solution supports it.
 
 ## Firewall enforcement
 
-Чтобы клиенты не обходили DNS policy через обычный DNS:
+To prevent clients from bypassing DNS policy through regular DNS:
 
 ```routeros
 /ip firewall filter
@@ -76,32 +76,32 @@ add chain=forward action=drop protocol=udp dst-port=53 src-address-list=local-su
 add chain=forward action=drop protocol=tcp dst-port=53 src-address-list=local-subnets out-interface-list=WAN comment="block direct DNS TCP"
 ```
 
-DoH/DoT требуют отдельной политики и не блокируются полностью этим набором.
+DoH/DoT need a separate policy and are not fully blocked by this set.
 
-## Локальные имена
+## Local names
 
-Для локальных сервисов можно использовать:
+For local services, you can use:
 
-- записи в AdGuard/Pi-hole;
+- records in AdGuard/Pi-hole;
 - MikroTik static DNS;
 - split DNS;
-- отдельную internal zone.
+- a separate internal zone.
 
-Главное - не заставлять пользователей запоминать IP NAS, Home Assistant и monitoring.
+The point is to avoid making users remember NAS, Home Assistant, and monitoring IP addresses.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
-- клиент получает правильный DNS через DHCP;
-- запросы видны в UI filtering resolver;
-- blocked domains действительно блокируются;
-- allowlist работает;
-- прямой DNS наружу запрещен, если policy требует;
-- локальные имена резолвятся;
-- fallback не обходит filtering.
+- the client receives the correct DNS through DHCP;
+- queries are visible in the filtering resolver UI;
+- blocked domains are actually blocked;
+- allowlist works;
+- direct DNS outward is blocked if policy requires it;
+- local names resolve;
+- fallback does not bypass filtering.
 
-Команды:
+Commands:
 
 ```routeros
 /ip dhcp-server network print
@@ -109,26 +109,26 @@ DoH/DoT требуют отдельной политики и не блокир�
 /tool torch interface=<vlan-interface>
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Выдать filtering DNS через DHCP, но не заблокировать direct DNS.
+Providing filtering DNS through DHCP but not blocking direct DNS.
 
-Поставить слишком агрессивные списки и сломать IoT/cloud devices.
+Using overly aggressive lists and breaking IoT/cloud devices.
 
-Не иметь fallback или monitoring для локального DNS server.
+Having no fallback or monitoring for the local DNS server.
 
-Считать DNS filtering антивирусом.
+Treating DNS filtering as antivirus.
 
-Не разделять политики Guest, IoT и LAN.
+Not separating Guest, IoT, and LAN policies.
 
 ## Security notes
 
-DNS filtering снижает шум и часть рисков, но не заменяет firewall, обновления и сегментацию. Устройство может обращаться по IP напрямую или использовать DoH.
+DNS filtering reduces noise and some risks, but it does not replace firewall, updates, and segmentation. A device can connect by IP directly or use DoH.
 
-Для IoT используйте filtering осторожно: иногда блокировка vendor-домена ломает обновления или управление. Это нужно логировать и документировать.
+Use filtering carefully for IoT: sometimes blocking a vendor domain breaks updates or control. That must be logged and documented.
 
-## Мини-вывод
+## Short takeaway
 
-DNS filtering лучше работает как policy per VLAN: разные resolver/profiles, DHCP options, firewall enforcement и понятные исключения. Он полезен, но не является полной security-границей.
+DNS filtering works best as policy per VLAN: different resolvers/profiles, DHCP options, firewall enforcement, and clear exceptions. It is useful, but it is not a complete security boundary.
 
-Следующая статья будет про FastTrack: ускорение, исключения и побочные эффекты.
+The next article is about FastTrack: acceleration, exceptions, and side effects.

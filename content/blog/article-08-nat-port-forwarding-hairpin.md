@@ -1,38 +1,38 @@
 ---
-title: "NAT, port forwarding и hairpin NAT: как открывать сервисы минимально безопасно"
+title: "NAT, port forwarding, and hairpin NAT: exposing services with minimal risk"
 date: 2026-03-18
-summary: "Разбор srcnat, dstnat, port forwarding, hairpin NAT и split DNS в MikroTik с фокусом на минимальную поверхность атаки."
+summary: "A look at srcnat, dstnat, port forwarding, hairpin NAT, and split DNS on MikroTik with a focus on minimal attack surface."
 tags: ["mikrotik","routeros","nat","port-forwarding"]
 topics: ["networking"]
 toc: true
 ---
 
-# NAT, port forwarding и hairpin NAT: как открывать сервисы минимально безопасно
+# NAT, port forwarding, and hairpin NAT: exposing services with minimal risk
 
-NAT часто воспринимают как firewall, но это разные вещи. NAT меняет адреса и порты, а firewall решает, какой трафик разрешен. Если открыть сервис через port forwarding без аккуратного firewall, можно получить лишнюю поверхность атаки.
+NAT is often treated as firewall, but they are different things. NAT changes addresses and ports, while firewall decides which traffic is allowed. If you expose a service through port forwarding without a careful firewall, you may create unnecessary attack surface.
 
-В этой статье разбираем srcnat для выхода в интернет, dstnat для публикации сервиса и hairpin NAT для доступа к внутреннему сервису по внешнему имени из LAN.
+In this article we cover srcnat for internet access, dstnat for publishing a service, and hairpin NAT for accessing an internal service through its external name from LAN.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Firewall уже должен иметь базовую модель: input закрывает роутер, forward контролирует транзит, WAN не имеет доступа к management.
+The firewall should already have a baseline model: input protects the router, forward controls transit, and WAN has no access to management.
 
-Теперь мы добавляем исключения для опубликованных сервисов. Каждое исключение должно быть минимальным: конкретный порт, протокол, внутренний IP и понятная причина.
+Now we add exceptions for published services. Every exception should be minimal: a specific port, protocol, internal IP, and clear reason.
 
 ## Srcnat masquerade
 
-Для обычного IPv4-доступа LAN в интернет используется masquerade:
+Normal IPv4 LAN access to the internet uses masquerade:
 
 ```routeros
 /ip firewall nat
 add chain=srcnat out-interface-list=WAN action=masquerade comment="srcnat: LAN to Internet"
 ```
 
-Это правило должно относиться к выходу через WAN. Оно не открывает входящие подключения с интернета.
+This rule applies to outbound traffic through WAN. It does not open incoming connections from the internet.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением NAT/firewall:
+Before changing NAT/firewall:
 
 ```routeros
 /system backup save name=before-nat-port-forward
@@ -40,43 +40,43 @@ add chain=srcnat out-interface-list=WAN action=masquerade comment="srcnat: LAN t
 /system console safe-mode
 ```
 
-Сначала уточните:
+First clarify:
 
-- внешний порт;
-- внутренний IP;
-- внутренний порт;
-- протокол TCP/UDP;
-- WAN interface или WAN interface-list;
-- нужен ли доступ только с конкретных внешних адресов;
-- где стоит финальный `drop` в forward.
+- external port;
+- internal IP;
+- internal port;
+- TCP/UDP protocol;
+- WAN interface or WAN interface-list;
+- whether access should be limited to specific external addresses;
+- where the final `drop` is in forward.
 
 ## Port forwarding
 
-Пример публикации внутреннего HTTPS-сервиса:
+Example of publishing an internal HTTPS service:
 
 ```routeros
 /ip firewall nat
 add chain=dstnat in-interface-list=WAN protocol=tcp dst-port=<external-port> action=dst-nat to-addresses=<internal-ip> to-ports=<internal-port> comment="dstnat: publish service"
 ```
 
-Но одного NAT-правила недостаточно. Нужен forward allow до финального drop:
+A NAT rule alone is not enough. You also need a forward allow before the final drop:
 
 ```routeros
 /ip firewall filter
 add chain=forward action=accept connection-nat-state=dstnat protocol=tcp dst-address=<internal-ip> dst-port=<internal-port> comment="forward: allow published service"
 ```
 
-Для более строгой политики добавьте `src-address-list=<trusted-public-sources>` или ограничьте географию/адреса на внешнем firewall, если это возможно.
+For a stricter policy, add `src-address-list=<trusted-public-sources>` or limit geography/addresses on an external firewall if possible.
 
-## Почему не открывать management
+## Why not expose management
 
-WinBox, SSH, WebFig и API не должны публиковаться через port forwarding. Для администрирования используйте WireGuard. Если временно нужен emergency access, он должен быть ограничен source address, временем, логированием и явным rollback.
+WinBox, SSH, WebFig, and API should not be published through port forwarding. Use WireGuard for administration. If temporary emergency access is needed, it must be source-address limited, time-limited, logged, and have an explicit rollback.
 
 ## Hairpin NAT
 
-Hairpin NAT нужен, когда клиент из LAN обращается к внутреннему сервису по внешнему DNS-имени, которое резолвится во внешний IP роутера.
+Hairpin NAT is needed when a LAN client accesses an internal service by an external DNS name that resolves to the router's public IP.
 
-Пример логики:
+Example logic:
 
 ```routeros
 /ip firewall nat
@@ -84,31 +84,31 @@ add chain=dstnat dst-address=<wan-public-ip> protocol=tcp dst-port=<external-por
 add chain=srcnat src-address=<lan-subnet> dst-address=<internal-ip> protocol=tcp dst-port=<internal-port> action=masquerade comment="hairpin srcnat"
 ```
 
-Это пример, который нужно адаптировать. Если WAN IP динамический, лучше рассмотреть split DNS или address-list обновляемый скриптом, а не жестко прописанный IP.
+This is an example that must be adapted. If the WAN IP is dynamic, consider split DNS or an address-list updated by script instead of hardcoding the IP.
 
-## Split DNS как альтернатива
+## Split DNS as an alternative
 
-Часто лучше сделать так, чтобы внутренние клиенты резолвили `service.example.com` сразу во внутренний IP. Тогда hairpin NAT не нужен или нужен меньше.
+Often it is better for internal clients to resolve `service.example.com` directly to the internal IP. Then hairpin NAT is not needed, or is needed less.
 
-Split DNS проще диагностировать, но требует контролируемого DNS для клиентов. Если часть клиентов использует внешний DoH, поведение может отличаться.
+Split DNS is easier to diagnose, but requires controlled DNS for clients. If some clients use external DoH, behavior may differ.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки снаружи:
+External checks:
 
-- открыт только нужный порт;
-- сервис отвечает;
-- management-порты закрыты;
-- source restrictions работают, если настроены.
+- only the required port is open;
+- the service responds;
+- management ports are closed;
+- source restrictions work, if configured.
 
-Проверки изнутри:
+Internal checks:
 
-- LAN может открыть сервис по внутреннему IP;
-- LAN может открыть сервис по внешнему имени, если hairpin/split DNS настроены;
-- Guest не получает доступ к сервису, если это запрещено;
-- логи firewall показывают ожидаемые совпадения.
+- LAN can open the service by internal IP;
+- LAN can open the service by external name if hairpin/split DNS is configured;
+- Guest does not get access to the service if that is forbidden;
+- firewall logs show expected matches.
 
-Команды:
+Commands:
 
 ```routeros
 /ip firewall nat print stats
@@ -116,26 +116,26 @@ Split DNS проще диагностировать, но требует кон�
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Сделать dstnat и забыть forward allow.
+Creating dstnat and forgetting the forward allow.
 
-Разрешить `connection-nat-state=dstnat` слишком широко для всех протоколов и всех внутренних адресов.
+Allowing `connection-nat-state=dstnat` too broadly for all protocols and all internal addresses.
 
-Публиковать NAS/admin panels без VPN.
+Publishing NAS/admin panels without VPN.
 
-Пытаться решить hairpin NAT, когда проще сделать split DNS.
+Trying to solve hairpin NAT when split DNS would be simpler.
 
-Открыть порт на WAN, но не проверить сервис с внешней сети.
+Opening a port on WAN but not testing the service from an external network.
 
 ## Security notes
 
-Каждый port forward - это публичное обязательство сопровождать сервис: обновления, auth, TLS, логи, brute-force protection и мониторинг.
+Every port forward is a public commitment to maintain the service: updates, auth, TLS, logs, brute-force protection, and monitoring.
 
-Если сервис нужен только вам, WireGuard почти всегда лучше port forwarding.
+If the service is only for you, WireGuard is almost always better than port forwarding.
 
-## Мини-вывод
+## Short takeaway
 
-NAT помогает маршрутизировать IPv4-трафик через границы адресов, но security делает firewall. Port forwarding должен быть точечным, проверяемым и минимальным. Hairpin NAT нужен только там, где split DNS не решает задачу проще.
+NAT helps route IPv4 traffic across address boundaries, but firewall provides security. Port forwarding should be specific, testable, and minimal. Hairpin NAT is needed only where split DNS does not solve the problem more simply.
 
-Следующая статья будет про Guest Wi-Fi через отдельный VLAN.
+The next article is about Guest Wi-Fi through a separate VLAN.

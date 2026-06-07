@@ -1,41 +1,41 @@
 ---
-title: "IoT isolation: отдельный сегмент для умных устройств без поломки smart-home"
+title: "IoT isolation: a separate segment for smart devices without breaking smart home"
 date: 2026-03-20
-summary: "Изоляция IoT в отдельном VLAN с DHCP/DNS, firewall policy, address-lists и контролируемым доступом из trusted-сегментов."
+summary: "Isolating IoT in a separate VLAN with DHCP/DNS, firewall policy, address-lists, and controlled access from trusted segments."
 tags: ["mikrotik","routeros","iot","vlan","security"]
 topics: ["networking"]
 toc: true
 ---
 
-# IoT isolation: отдельный сегмент для умных устройств без поломки smart-home
+# IoT isolation: a separate segment for smart devices without breaking smart home
 
-IoT-устройства удобны, но доверять им как рабочему ноутбуку нельзя. Камеры, лампы, розетки, телевизоры и бытовая техника часто редко обновляются, активно ходят в cloud и могут иметь слабую security-модель.
+IoT devices are convenient, but they should not be trusted like a work laptop. Cameras, bulbs, plugs, TVs, and appliances are often updated rarely, actively talk to cloud services, and may have a weak security model.
 
-Цель IoT isolation - отделить такие устройства от LAN и Management, но не сломать нужные сценарии smart-home.
+The goal of IoT isolation is to separate these devices from LAN and Management without breaking required smart-home scenarios.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Guest VLAN уже дала модель "internet only". IoT похож на Guest тем, что не должен инициировать доступ в LAN/Management, но отличается тем, что LAN иногда должна обращаться к IoT: Home Assistant, принтеры, media devices, локальные API.
+Guest VLAN already gave us an "internet only" model. IoT is similar to Guest because it should not initiate access to LAN/Management, but it differs because LAN sometimes needs to access IoT: Home Assistant, printers, media devices, local APIs.
 
-Поэтому IoT policy обычно не такая простая, как Guest.
+That is why IoT policy is usually not as simple as Guest policy.
 
-## Базовая политика
+## Baseline policy
 
-| Поток | Решение |
+| Flow | Decision |
 | --- | --- |
-| IoT -> Internet | allow или ограниченно |
-| IoT -> DNS/DHCP | allow к разрешенным сервисам |
-| IoT -> LAN | deny по умолчанию |
+| IoT -> Internet | allow or limited |
+| IoT -> DNS/DHCP | allow to approved services |
+| IoT -> LAN | deny by default |
 | IoT -> Management | deny |
-| LAN -> IoT | allow только нужные сервисы |
-| Home Assistant -> IoT | allow по списку |
-| IoT -> Server | deny, кроме явных исключений |
+| LAN -> IoT | allow only required services |
+| Home Assistant -> IoT | allow by list |
+| IoT -> Server | deny except explicit exceptions |
 
-Главный принцип: IoT не инициирует доступ к доверенным сегментам.
+The main principle: IoT does not initiate access to trusted segments.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением VLAN/firewall/Wi-Fi:
+Before changing VLAN/firewall/Wi-Fi:
 
 ```routeros
 /system backup save name=before-iot-isolation
@@ -43,11 +43,11 @@ Guest VLAN уже дала модель "internet only". IoT похож на Gue
 /system console safe-mode
 ```
 
-Сначала инвентаризируйте устройства: IP/MAC, назначение, cloud/local mode, нужные порты, нужен ли multicast/mDNS.
+First inventory devices: IP/MAC, purpose, cloud/local mode, required ports, and whether multicast/mDNS is needed.
 
-## IoT VLAN и DHCP
+## IoT VLAN and DHCP
 
-Пример:
+Example:
 
 ```routeros
 /interface vlan
@@ -66,20 +66,20 @@ add name=dhcp-iot interface=vlan40-iot address-pool=pool-iot lease-time=1d disab
 add address=10.10.40.0/24 gateway=10.10.40.1 dns-server=10.10.40.1
 ```
 
-Для важных IoT-устройств полезны static leases: правила firewall проще писать на address-list или стабильные IP.
+Static leases are useful for important IoT devices: firewall rules are easier to write against address-lists or stable IPs.
 
-## Wi-Fi для IoT
+## Wi-Fi for IoT
 
-IoT SSID должен вести в IoT VLAN:
+The IoT SSID should map to the IoT VLAN:
 
 ```text
 SSID: Home-IoT
 VLAN ID: 40
-Security: WPA2/WPA3 по совместимости устройств
-Client isolation: включить, если устройства не должны общаться друг с другом
+Security: WPA2/WPA3 according to device compatibility
+Client isolation: enable if devices should not talk to each other
 ```
 
-Некоторые старые устройства плохо работают с WPA3, band steering или modern roaming features. Это не повод помещать их в LAN; лучше сделать отдельный IoT SSID с совместимыми параметрами и жесткой firewall policy.
+Some old devices work poorly with WPA3, band steering, or modern roaming features. That is not a reason to put them in LAN; make a separate IoT SSID with compatible settings and a strict firewall policy.
 
 ## Firewall
 
@@ -102,11 +102,11 @@ add chain=forward action=accept src-address=<home-assistant-ip> dst-address-list
 add chain=forward action=drop in-interface-list=IOT out-interface-list=!WAN log=yes log-prefix="drop-iot" comment="iot: block internal"
 ```
 
-Правило Home Assistant - пример. Лучше явно перечислить устройства и сервисы, чем разрешать весь LAN -> IoT без необходимости.
+The Home Assistant rule is an example. It is better to explicitly list devices and services than to allow all LAN -> IoT without need.
 
 ## Address-lists
 
-Address-lists помогают поддерживать правила:
+Address-lists help maintain policy:
 
 ```routeros
 /ip firewall address-list
@@ -114,26 +114,26 @@ add list=iot-devices address=<iot-device-ip> comment="living room TV"
 add list=iot-controllers address=<home-assistant-ip> comment="Home Assistant"
 ```
 
-После этого firewall можно читать как policy, а не как набор случайных IP.
+After that, the firewall can be read as policy instead of a set of random IP addresses.
 
-## mDNS и discovery
+## mDNS and discovery
 
-Многие smart-home сценарии зависят от mDNS/SSDP/broadcast discovery. Между VLAN это не работает автоматически. Не пытайтесь решить это широким allow между LAN и IoT.
+Many smart-home scenarios depend on mDNS/SSDP/broadcast discovery. This does not work automatically between VLANs. Do not try to solve it with a broad allow between LAN and IoT.
 
-Для discovery будет отдельная статья про mDNS и service discovery. Здесь важно зафиксировать: маршрутизируемый доступ и multicast discovery - разные задачи.
+There will be a separate article about mDNS and service discovery. Here the important point is: routed access and multicast discovery are different tasks.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
-- IoT device получает IP из IoT subnet;
-- интернет работает, если разрешен;
-- IoT не открывает LAN/MGMT адреса;
-- LAN или Home Assistant видит только разрешенные IoT-сервисы;
-- DNS/DHCP работают;
-- логи показывают blocked IoT -> internal attempts.
+- an IoT device receives an IP from the IoT subnet;
+- internet works if allowed;
+- IoT cannot open LAN/MGMT addresses;
+- LAN or Home Assistant sees only allowed IoT services;
+- DNS/DHCP work;
+- logs show blocked IoT -> internal attempts.
 
-Команды:
+Commands:
 
 ```routeros
 /ip dhcp-server lease print where server=dhcp-iot
@@ -142,24 +142,24 @@ add list=iot-controllers address=<home-assistant-ip> comment="Home Assistant"
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Сделать IoT VLAN, но разрешить IoT -> LAN полностью.
+Creating an IoT VLAN but allowing IoT -> LAN fully.
 
-Положить Home Assistant в IoT и потерять контроль над trust boundary.
+Putting Home Assistant into IoT and losing control over the trust boundary.
 
-Считать, что mDNS заработает между VLAN сам.
+Assuming mDNS will work between VLANs by itself.
 
-Разрешить IoT к management, потому что "так проще настроить".
+Allowing IoT to management because "it is easier to configure".
 
 ## Security notes
 
-IoT-сегмент должен быть недоверенным. Если устройство требует полный доступ к LAN для базовой работы, это повод пересмотреть устройство или сценарий.
+The IoT segment should be untrusted. If a device requires full LAN access for basic operation, reconsider the device or scenario.
 
-Отдельная VLAN не защищает, если firewall разрешает все. Отдельный firewall rule не помогает, если все устройства остаются в одной LAN.
+A separate VLAN does not protect anything if the firewall allows everything. A separate firewall rule does not help if all devices remain in one LAN.
 
-## Мини-вывод
+## Short takeaway
 
-IoT isolation - это компромисс между безопасностью и функциональностью. IoT не должен инициировать доступ к LAN/Management, а trusted-сегменты получают только нужные исключения.
+IoT isolation is a compromise between security and functionality. IoT should not initiate access to LAN/Management, while trusted segments receive only the required exceptions.
 
-Следующая статья будет про mDNS и service discovery между VLAN.
+The next article is about mDNS and service discovery between VLANs.

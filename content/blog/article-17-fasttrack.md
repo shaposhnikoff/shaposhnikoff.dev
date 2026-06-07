@@ -1,25 +1,25 @@
 ---
-title: "FastTrack на MikroTik: ускорение, исключения и побочные эффекты"
+title: "FastTrack on MikroTik: acceleration, exceptions, and side effects"
 date: 2026-03-27
-summary: "Как использовать FastTrack на MikroTik без поломки QoS, mangle, policy routing и observability."
+summary: "How to use FastTrack on MikroTik without breaking QoS, mangle, policy routing, and observability."
 tags: ["mikrotik","routeros","fasttrack","performance"]
 topics: ["networking"]
 toc: true
 ---
 
-# FastTrack на MikroTik: ускорение, исключения и побочные эффекты
+# FastTrack on MikroTik: acceleration, exceptions, and side effects
 
-FastTrack ускоряет обработку части IPv4-трафика в RouterOS, обходя некоторые дальнейшие этапы обработки пакетов. Это полезно для производительности, но может конфликтовать с QoS, accounting, queues, policy routing и некоторыми firewall-сценариями.
+FastTrack accelerates processing for some IPv4 traffic in RouterOS by bypassing certain later packet processing stages. It is useful for performance, but it can conflict with QoS, accounting, queues, policy routing, and some firewall scenarios.
 
-FastTrack нельзя включать как "ускорить все", не понимая последствий.
+Do not enable FastTrack as "speed everything up" without understanding the consequences.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-У нас уже есть firewall и NAT. FastTrack обычно добавляют после базовой security policy, когда понятно, какие потоки можно ускорять, а какие должны оставаться видимыми для queues, monitoring или special routing.
+We already have firewall and NAT. FastTrack is usually added after the baseline security policy, when it is clear which flows can be accelerated and which must remain visible to queues, monitoring, or special routing.
 
-## Что делает FastTrack
+## What FastTrack does
 
-Типичное правило ускоряет established/related IPv4 connections:
+A typical rule accelerates established/related IPv4 connections:
 
 ```routeros
 /ip firewall filter
@@ -27,18 +27,18 @@ add chain=forward action=fasttrack-connection connection-state=established,relat
 add chain=forward action=accept connection-state=established,related comment="accept established related"
 ```
 
-Порядок важен: fasttrack-connection обычно стоит перед accept established/related.
+Order matters: `fasttrack-connection` usually comes before accepting established/related.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением firewall/FastTrack:
+Before changing firewall/FastTrack:
 
 ```routeros
 /system backup save name=before-fasttrack
 /export file=before-fasttrack
 ```
 
-Проверьте текущие rules, queues, mangle, policy routing:
+Check current rules, queues, mangle, and policy routing:
 
 ```routeros
 /ip firewall filter print
@@ -48,23 +48,23 @@ add chain=forward action=accept connection-state=established,related comment="ac
 /ip route print
 ```
 
-Если есть QoS или policy routing, FastTrack нужно включать особенно осторожно.
+If QoS or policy routing exists, enable FastTrack especially carefully.
 
-## Что нельзя fasttrack бездумно
+## What should not be fasttracked blindly
 
-Исключайте:
+Exclude:
 
-- traffic, который должен попадать в queues/QoS;
+- traffic that must hit queues/QoS;
 - policy-routed traffic;
-- VPN traffic, если есть нюансы маршрутизации/учета;
-- inter-VLAN traffic, который нужно детально логировать;
-- connections, где нужен mangle/accounting.
+- VPN traffic if routing/accounting nuances exist;
+- inter-VLAN traffic that needs detailed logging;
+- connections that require mangle/accounting.
 
-FastTrack полезен для обычного LAN -> WAN established traffic, но не для всех потоков.
+FastTrack is useful for ordinary LAN -> WAN established traffic, but not for every flow.
 
-## Исключения через connection marks
+## Exceptions through connection marks
 
-Один из подходов - маркировать traffic, который нельзя fasttrack, а fasttrack применять только к остальному:
+One approach is to mark traffic that must not be fasttracked and apply FastTrack only to the rest:
 
 ```routeros
 /ip firewall filter
@@ -72,21 +72,21 @@ add chain=forward action=fasttrack-connection connection-state=established,relat
 add chain=forward action=accept connection-state=established,related comment="accept established related"
 ```
 
-Маркировка делается в mangle по вашей логике. Это требует тестирования, потому что ошибки в marks могут ломать QoS/policy routing.
+Marking is done in mangle according to your logic. This requires testing because mistakes in marks can break QoS/policy routing.
 
-## FastTrack и QoS
+## FastTrack and QoS
 
-Если вы настраиваете traffic shaping, FastTrack может обойти queues. Поэтому перед QoS часто отключают FastTrack или исключают traffic, который должен шейпиться.
+If you configure traffic shaping, FastTrack can bypass queues. That is why FastTrack is often disabled before QoS, or traffic that must be shaped is excluded.
 
-Если провайдерский uplink перегружается, "ускорение" без shaping может даже ухудшить latency под нагрузкой.
+If the ISP uplink is congested, "acceleration" without shaping can even worsen latency under load.
 
-## FastTrack и IPv6
+## FastTrack and IPv6
 
-Эта статья про типичный IPv4 FastTrack. IPv6 acceleration и hardware offload зависят от RouterOS, модели и конкретной конфигурации. Не переносите IPv4-логику blindly.
+This article is about typical IPv4 FastTrack. IPv6 acceleration and hardware offload depend on RouterOS, the model, and the specific configuration. Do not transfer IPv4 logic blindly.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
 ```routeros
 /ip firewall filter print stats
@@ -94,32 +94,32 @@ add chain=forward action=accept connection-state=established,related comment="ac
 /interface monitor-traffic <interface-name>
 ```
 
-Сравните:
+Compare:
 
-- CPU под нагрузкой до/после;
-- работает ли QoS;
-- не сломался ли VPN/policy routing;
-- firewall counters ожидаемо растут;
-- inter-VLAN restrictions сохраняются.
+- CPU under load before/after;
+- whether QoS still works;
+- whether VPN/policy routing still works;
+- firewall counters grow as expected;
+- inter-VLAN restrictions remain in place.
 
-## Частые ошибки
+## Common mistakes
 
-FastTrack включен, а потом "не работает QoS".
+FastTrack is enabled and then "QoS does not work".
 
-FastTrack ускоряет traffic, который должен идти через mangle/policy routing.
+FastTrack accelerates traffic that should go through mangle/policy routing.
 
-Правило поставлено до security checks и скрывает проблемы диагностики.
+The rule is placed before security checks and hides diagnostics.
 
-Ожидать, что FastTrack исправит слабое железо во всех сценариях.
+Expecting FastTrack to fix weak hardware in every scenario.
 
 ## Security notes
 
-FastTrack не должен обходить security intent. Сначала firewall policy, потом оптимизация. Если вы не можете объяснить, какие потоки ускоряются, FastTrack включать рано.
+FastTrack must not bypass security intent. First firewall policy, then optimization. If you cannot explain which flows are accelerated, it is too early to enable FastTrack.
 
-Логи и counters могут стать менее очевидными. Документируйте исключения.
+Logs and counters may become less obvious. Document exceptions.
 
-## Мини-вывод
+## Short takeaway
 
-FastTrack полезен, когда нужно снизить CPU на обычном established traffic. Но он конфликтует с QoS, mangle, policy routing и частью наблюдаемости. Включайте его точечно и проверяйте последствия.
+FastTrack is useful when you need to reduce CPU on ordinary established traffic. But it conflicts with QoS, mangle, policy routing, and some observability. Enable it selectively and verify the consequences.
 
-Следующая статья будет про QoS и traffic shaping.
+The next article is about QoS and traffic shaping.

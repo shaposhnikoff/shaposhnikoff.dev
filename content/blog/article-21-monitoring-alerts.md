@@ -1,27 +1,27 @@
 ---
-title: "Monitoring и alerts: WAN, VPN, CPU/RAM, DHCP pools, логи и уведомления"
+title: "Monitoring and alerts: WAN, VPN, CPU/RAM, DHCP pools, logs, and notifications"
 date: 2026-03-31
-summary: "Monitoring и alerts для MikroTik: WAN, VPN, CPU/RAM, DHCP pools, DNS, backups, logs, SNMP и actionable alerts."
+summary: "Monitoring and alerts for MikroTik: WAN, VPN, CPU/RAM, DHCP pools, DNS, backups, logs, SNMP, and actionable alerts."
 tags: ["mikrotik","routeros","monitoring","alerts","snmp"]
 topics: ["networking"]
 toc: true
 ---
 
-# Monitoring и alerts: WAN, VPN, CPU/RAM, DHCP pools, логи и уведомления
+# Monitoring and alerts: WAN, VPN, CPU/RAM, DHCP pools, logs, and notifications
 
-Monitoring отвечает на вопрос "сеть работает нормально?" Alerts отвечают на вопрос "когда человеку нужно вмешаться?". Без этого проблемы обнаруживаются по жалобам пользователей.
+Monitoring answers the question "is the network healthy?" Alerts answer "when does a human need to intervene?" Without them, problems are discovered through user complaints.
 
-MikroTik может отдавать состояние через RouterOS tools, SNMP, logs, scripts и внешние системы мониторинга.
+MikroTik can expose state through RouterOS tools, SNMP, logs, scripts, and external monitoring systems.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Logging уже определил, какие события писать. Monitoring добавляет регулярные проверки: WAN, VPN, CPU/RAM, interfaces, DHCP pools, backup status, firewall/log signals.
+Logging already defined which events to write. Monitoring adds regular checks: WAN, VPN, CPU/RAM, interfaces, DHCP pools, backup status, firewall/log signals.
 
-Цель - видеть деградации до того, как они станут аварией.
+The goal is to see degradation before it becomes an incident.
 
-## Что мониторить
+## What to monitor
 
-| Объект | Что проверять |
+| Object | What to check |
 | --- | --- |
 | WAN | link, route, ping target, DNS resolution |
 | Dual WAN | active uplink, failover/failback |
@@ -33,49 +33,49 @@ Logging уже определил, какие события писать. Monit
 | Backups | last success, upload result |
 | Logs | critical prefixes/errors |
 
-## Перед применением
+## Before applying anything
 
-Перед включением scripts/SNMP/alerts:
+Before enabling scripts/SNMP/alerts:
 
 ```routeros
 /system backup save name=before-monitoring
 /export file=before-monitoring
 ```
 
-Не публикуйте monitoring endpoints в интернет. SNMP/API должны быть доступны только из trusted monitoring сегмента или через VPN.
+Do not expose monitoring endpoints to the internet. SNMP/API must be reachable only from a trusted monitoring segment or through VPN.
 
 ## SNMP
 
-Если используете Prometheus exporter, Zabbix, LibreNMS или другой monitoring, SNMP может быть удобен:
+If you use Prometheus exporter, Zabbix, LibreNMS, or another monitoring system, SNMP can be convenient:
 
 ```routeros
 /snmp set enabled=yes contact=<contact> location=<location>
 ```
 
-Community, allowed addresses и version настройте строго. Не используйте публичные community вроде `public` без ограничения source.
+Configure community, allowed addresses, and version strictly. Do not use public communities such as `public` without source restrictions.
 
-## Netwatch и scripts
+## Netwatch and scripts
 
-Для простых checks можно использовать RouterOS netwatch:
+For simple checks, RouterOS netwatch can be used:
 
 ```routeros
 /tool netwatch
 add host=1.1.1.1 interval=30s timeout=2s up-script=":log info \"wan-check: up\"" down-script=":log warning \"wan-check: down\""
 ```
 
-Для production лучше не ограничиваться одним target. Проверяйте и IP reachability, и DNS.
+For production, do not rely on a single target. Check both IP reachability and DNS.
 
 ## WireGuard monitoring
 
-Проверяйте latest handshake и доступность peer. Если peer должен быть постоянно онлайн, отсутствие handshake - alert. Если это road-warrior laptop, отсутствие handshake может быть нормой.
+Check latest handshake and peer reachability. If a peer should always be online, lack of handshake is an alert. If it is a road-warrior laptop, lack of handshake may be normal.
 
-Разделяйте always-on site-to-site и occasional road-warrior peers.
+Separate always-on site-to-site peers from occasional road-warrior peers.
 
 ## DHCP pools
 
-DHCP pool exhaustion может незаметно сломать подключение новых устройств. Для Guest и IoT это особенно актуально.
+DHCP pool exhaustion can silently break new device connections. This is especially relevant for Guest and IoT.
 
-Периодически проверяйте leases и размер pools:
+Periodically check leases and pool sizes:
 
 ```routeros
 /ip dhcp-server lease print
@@ -84,29 +84,29 @@ DHCP pool exhaustion может незаметно сломать подключ
 
 ## Alerts
 
-Каналы:
+Channels:
 
 - email;
-- Telegram/webhook через script;
-- внешний monitoring;
+- Telegram/webhook through script;
+- external monitoring;
 - syslog rules;
 - NMS alerts.
 
-Alert должен быть actionable: что сломалось, где, когда, насколько критично.
+An alert should be actionable: what broke, where, when, and how critical it is.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
-- отключение WAN создает alert;
-- failover создает alert;
-- backup failure создает alert;
-- high CPU/RAM видны;
-- DHCP pool threshold проверяется;
-- remote monitoring не доступен из Guest/WAN;
-- false positives приемлемы.
+- WAN disconnection creates an alert;
+- failover creates an alert;
+- backup failure creates an alert;
+- high CPU/RAM is visible;
+- DHCP pool threshold is checked;
+- remote monitoring is not reachable from Guest/WAN;
+- false positives are acceptable.
 
-Команды:
+Commands:
 
 ```routeros
 /system resource print
@@ -115,26 +115,26 @@ Alert должен быть actionable: что сломалось, где, ко�
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Мониторить только "ping 8.8.8.8" и считать сеть здоровой.
+Monitoring only "ping 8.8.8.8" and calling the network healthy.
 
-Слать alerts на каждое временное событие и приучить себя их игнорировать.
+Sending alerts for every temporary event and training yourself to ignore them.
 
-Открыть SNMP/API наружу.
+Exposing SNMP/API externally.
 
-Не мониторить backup success.
+Not monitoring backup success.
 
-Не различать критичные и информационные события.
+Not distinguishing critical and informational events.
 
 ## Security notes
 
-Monitoring имеет доступ к чувствительной информации о сети. Ограничьте source addresses, используйте VPN/trusted VLAN и не публикуйте SNMP/API в интернет.
+Monitoring has access to sensitive network information. Limit source addresses, use VPN/trusted VLAN, and do not expose SNMP/API to the internet.
 
-Alerts могут раскрывать внутренние адреса и имена устройств. Канал уведомлений должен быть защищен.
+Alerts can disclose internal addresses and device names. The notification channel should be protected.
 
-## Мини-вывод
+## Short takeaway
 
-Monitoring должен покрывать WAN, VPN, ресурсы, DHCP, DNS, backups и критичные logs. Alerts должны быть редкими, понятными и actionable.
+Monitoring should cover WAN, VPN, resources, DHCP, DNS, backups, and critical logs. Alerts should be rare, clear, and actionable.
 
-Следующая статья будет про automated backups.
+The next article is about automated backups.

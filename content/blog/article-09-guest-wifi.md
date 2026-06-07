@@ -1,45 +1,45 @@
 ---
-title: "Guest Wi-Fi через отдельный VLAN: интернет есть, доступа к LAN нет"
+title: "Guest Wi-Fi through a separate VLAN: internet access without LAN access"
 date: 2026-03-19
-summary: "Guest Wi-Fi как отдельный VLAN: SSID, DHCP/DNS, firewall internet-only policy и запрет доступа к LAN."
+summary: "Guest Wi-Fi as a separate VLAN: SSID, DHCP/DNS, firewall internet-only policy, and blocking LAN access."
 tags: ["mikrotik","routeros","wifi","guest-vlan"]
 topics: ["networking"]
 toc: true
 ---
 
-# Guest Wi-Fi через отдельный VLAN: интернет есть, доступа к LAN нет
+# Guest Wi-Fi through a separate VLAN: internet access without LAN access
 
-Гостевая сеть должна давать интернет, а не доступ к вашим ноутбукам, NAS, принтерам и management-интерфейсам. Отдельный SSID без отдельной VLAN и firewall - это часто только косметика.
+A guest network should provide internet access, not access to your laptops, NAS, printers, and management interfaces. A separate SSID without a separate VLAN and firewall is often just cosmetic.
 
-В этой статье строим Guest Wi-Fi как отдельный сегмент: SSID -> Guest VLAN -> DHCP/DNS -> internet only -> запрет доступа к внутренним сетям.
+In this article we build Guest Wi-Fi as a separate segment: SSID -> Guest VLAN -> DHCP/DNS -> internet only -> no access to internal networks.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Мы уже описали VLAN, DHCP/DNS, firewall и NAT. Guest Wi-Fi использует все эти слои:
+We already described VLANs, DHCP/DNS, firewall, and NAT. Guest Wi-Fi uses all of these layers:
 
-- AP/CAP отправляет клиентов в Guest VLAN;
-- MikroTik выдает адреса через DHCP;
-- DNS доступен только как разрешенный сервис;
-- firewall запрещает доступ к LAN/MGMT/Server;
-- NAT выпускает гостей в интернет.
+- AP/CAP sends clients into the Guest VLAN;
+- MikroTik provides addresses through DHCP;
+- DNS is available only as an allowed service;
+- firewall blocks access to LAN/MGMT/Server;
+- NAT lets guests reach the internet.
 
-## Что должен уметь Guest VLAN
+## What Guest VLAN must support
 
-Минимальная политика:
+Minimal policy:
 
-| Действие | Решение |
+| Action | Decision |
 | --- | --- |
-| Получить DHCP | allow |
-| Использовать DNS | allow к разрешенному resolver |
-| Ходить в internet | allow |
-| Ходить в LAN | deny |
-| Ходить в Management | deny |
-| Ходить к Server/NAS | deny по умолчанию |
-| Видеть других guest clients | лучше запретить на Wi-Fi client isolation |
+| Get DHCP | allow |
+| Use DNS | allow to the approved resolver |
+| Access internet | allow |
+| Access LAN | deny |
+| Access Management | deny |
+| Access Server/NAS | deny by default |
+| See other guest clients | preferably deny with Wi-Fi client isolation |
 
-## Перед применением
+## Before applying anything
 
-Перед изменением Wi-Fi/VLAN/firewall:
+Before changing Wi-Fi/VLAN/firewall:
 
 ```routeros
 /system backup save name=before-guest-wifi
@@ -47,11 +47,11 @@ toc: true
 /system console safe-mode
 ```
 
-Проверьте RouterOS package и модель AP. В RouterOS 7 есть различия между legacy wireless и новым WiFi stack, поэтому конкретные CAPsMAN/Wi-Fi команды нужно сверять на устройстве или CHR/тестовой точке.
+Check the RouterOS package and AP model. RouterOS 7 has differences between legacy wireless and the newer WiFi stack, so specific CAPsMAN/Wi-Fi commands must be verified on the device or on CHR/test AP.
 
-## VLAN и DHCP
+## VLAN and DHCP
 
-Guest VLAN уже должна быть создана:
+Guest VLAN should already exist:
 
 ```routeros
 /interface vlan
@@ -70,25 +70,25 @@ add name=dhcp-guest interface=vlan30-guest address-pool=pool-guest lease-time=8h
 add address=10.10.30.0/24 gateway=10.10.30.1 dns-server=10.10.30.1
 ```
 
-Это пример адресного плана. Используйте свои сети и имена.
+This is an example addressing plan. Use your own networks and names.
 
 ## SSID -> VLAN
 
-На AP или CAPsMAN Guest SSID должен попадать в VLAN 30. Конкретный синтаксис зависит от WiFi package и модели, поэтому здесь важна логика:
+On the AP or CAPsMAN, Guest SSID must land in VLAN 30. The exact syntax depends on the WiFi package and model, so the logic matters here:
 
 ```text
 SSID: Home-Guest
 VLAN mode: use tag
 VLAN ID: 30
 Client isolation: enabled
-Authentication: WPA2/WPA3 personal или captive policy по задаче
+Authentication: WPA2/WPA3 personal or captive policy as needed
 ```
 
-Точка доступа должна быть подключена trunk-портом, где Guest VLAN разрешена tagged.
+The access point must be connected through a trunk port where Guest VLAN is allowed tagged.
 
-## Firewall для Guest
+## Firewall for Guest
 
-Input к роутеру:
+Input to the router:
 
 ```routeros
 /ip firewall filter
@@ -106,25 +106,25 @@ add chain=forward action=accept in-interface-list=GUEST out-interface-list=WAN c
 add chain=forward action=drop in-interface-list=GUEST out-interface-list=!WAN log=yes log-prefix="drop-guest" comment="guest: block internal networks"
 ```
 
-Порядок должен учитывать established/related в начале цепочек и финальный drop в конце.
+Order must account for established/related at the beginning of chains and the final drop at the end.
 
 ## DNS enforcement
 
-Если гостям разрешен только DNS через MikroTik или фильтрующий resolver, можно блокировать прямой DNS наружу и redirect/allow по политике. Но DoH over 443 полностью таким способом не решается. Это отдельная тема DNS policy.
+If guests may use only DNS through MikroTik or a filtering resolver, you can block direct DNS outward and redirect/allow according to policy. But DoH over 443 cannot be fully solved this way. DNS policy is a separate topic.
 
-## Как проверить результат
+## How to verify the result
 
-С guest-клиента:
+From a guest client:
 
-- подключиться к Guest SSID;
-- получить IP из Guest subnet;
-- проверить gateway и DNS;
-- открыть интернет;
-- попробовать открыть router management IP - должно быть запрещено;
-- попробовать открыть LAN/NAS IP - должно быть запрещено;
-- проверить, видны ли другие guest clients.
+- connect to the Guest SSID;
+- receive an IP from the Guest subnet;
+- check gateway and DNS;
+- open the internet;
+- try opening the router management IP; it should be blocked;
+- try opening a LAN/NAS IP; it should be blocked;
+- check whether other guest clients are visible.
 
-На MikroTik:
+On MikroTik:
 
 ```routeros
 /ip dhcp-server lease print where server=dhcp-guest
@@ -132,26 +132,26 @@ add chain=forward action=drop in-interface-list=GUEST out-interface-list=!WAN lo
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Создать Guest SSID, но оставить его в LAN VLAN.
+Creating a Guest SSID but leaving it in the LAN VLAN.
 
-Разрешить Guest к DNS, но случайно открыть весь input к роутеру.
+Allowing Guest to DNS but accidentally opening all input to the router.
 
-Забыть client isolation на Wi-Fi.
+Forgetting Wi-Fi client isolation.
 
-Разрешить Guest к Server/NAS "временно" и оставить навсегда.
+Allowing Guest to Server/NAS "temporarily" and leaving it forever.
 
-Не проверить trunk до AP: SSID есть, но VLAN не проходит.
+Not checking the trunk to the AP: the SSID exists, but the VLAN does not pass.
 
 ## Security notes
 
-Guest-сеть должна считаться недоверенной. Даже если гости - друзья, их устройства могут быть заражены, неправильно настроены или просто не должны видеть вашу инфраструктуру.
+Treat the guest network as untrusted. Even if guests are friends, their devices may be compromised, misconfigured, or simply should not see your infrastructure.
 
-Не используйте Guest VLAN для IoT. У IoT другие требования: иногда нужен доступ из LAN к устройствам, service discovery и интеграция с Home Assistant.
+Do not use the Guest VLAN for IoT. IoT has different requirements: sometimes LAN needs access to devices, service discovery, and Home Assistant integration.
 
-## Мини-вывод
+## Short takeaway
 
-Guest Wi-Fi - это отдельный SSID, отдельная VLAN, свой DHCP/DNS и firewall policy "internet only". Без VLAN и forward restrictions гостевая сеть не решает security-задачу.
+Guest Wi-Fi is a separate SSID, a separate VLAN, its own DHCP/DNS, and an "internet only" firewall policy. Without VLANs and forward restrictions, a guest network does not solve the security problem.
 
-Следующая статья будет про IoT isolation: как отделить умные устройства и не сломать smart-home.
+The next article is about IoT isolation: separating smart devices without breaking smart-home behavior.

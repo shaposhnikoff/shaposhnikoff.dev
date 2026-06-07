@@ -1,37 +1,37 @@
 ---
-title: "IPv6 на MikroTik: prefix delegation, RA/SLAAC и отдельный firewall"
+title: "IPv6 on MikroTik: prefix delegation, RA/SLAAC, and a separate firewall"
 date: 2026-03-23
-summary: "Осознанное включение IPv6 на MikroTik: prefix delegation, RA/SLAAC, DNS и отдельный firewall для VLAN."
+summary: "Enabling IPv6 on MikroTik deliberately: prefix delegation, RA/SLAAC, DNS, and a separate firewall for VLANs."
 tags: ["mikrotik","routeros","ipv6","firewall"]
 topics: ["networking"]
 toc: true
 ---
 
-# IPv6 на MikroTik: prefix delegation, RA/SLAAC и отдельный firewall
+# IPv6 on MikroTik: prefix delegation, RA/SLAAC, and a separate firewall
 
-IPv6 нельзя описывать как "IPv4, только адреса длиннее". В IPv6 другая модель адресации, discovery, autoconfiguration и безопасности. Привычный NAT из IPv4 не является основной границей защиты.
+IPv6 is not "IPv4 with longer addresses". It has a different addressing, discovery, autoconfiguration, and security model. The familiar NAT from IPv4 is not the main protection boundary.
 
-Если включить IPv6 без firewall, внутренние устройства могут получить глобальные адреса и стать доступнее, чем вы ожидаете.
+If you enable IPv6 without a firewall, internal devices can receive global addresses and become more reachable than you expect.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-До этого сеть работала на IPv4: VLAN, DHCP, DNS, firewall и NAT. IPv6 добавляет отдельный стек, который должен повторять security intent, но не копировать IPv4 правила механически.
+Until now the network worked on IPv4: VLANs, DHCP, DNS, firewall, and NAT. IPv6 adds a separate stack that should repeat the security intent, but not mechanically copy IPv4 rules.
 
-Нужны prefix delegation от провайдера, IPv6 addresses на VLAN, RA/SLAAC или DHCPv6, DNS и отдельный IPv6 firewall.
+You need prefix delegation from the ISP, IPv6 addresses on VLANs, RA/SLAAC or DHCPv6, DNS, and a separate IPv6 firewall.
 
-## Основные понятия
+## Basic concepts
 
-Prefix Delegation - провайдер выдает роутеру IPv6 prefix, например `/56` или `/60`, из которого можно раздать `/64` на VLAN.
+Prefix Delegation means the provider gives the router an IPv6 prefix, for example `/56` or `/60`, from which `/64` networks can be assigned to VLANs.
 
-RA/SLAAC - Router Advertisement позволяет клиентам самостоятельно настроить IPv6 address и gateway.
+RA/SLAAC means Router Advertisement lets clients configure an IPv6 address and gateway automatically.
 
-DHCPv6 может использоваться для дополнительных параметров, но не всегда заменяет SLAAC.
+DHCPv6 can be used for additional parameters, but it does not always replace SLAAC.
 
-ICMPv6 критически важен для нормальной работы IPv6. Блокировать его blindly нельзя.
+ICMPv6 is critical for normal IPv6 operation. Do not block it blindly.
 
-## Перед применением
+## Before applying anything
 
-Перед включением IPv6:
+Before enabling IPv6:
 
 ```routeros
 /system backup save name=before-ipv6
@@ -39,22 +39,22 @@ ICMPv6 критически важен для нормальной работы 
 /system console safe-mode
 ```
 
-Проверьте, что пакет IPv6 доступен/включен для вашей RouterOS, и уточните у провайдера PD behavior. Не включайте IPv6 на production-сети без firewall.
+Check that IPv6 is available/enabled for your RouterOS and clarify provider PD behavior. Do not enable IPv6 on a production network without a firewall.
 
-## Получение prefix
+## Receiving a prefix
 
-Схема зависит от WAN: DHCPv6-PD, PPPoE, static prefix. Примерная логика:
+The design depends on WAN: DHCPv6-PD, PPPoE, or static prefix. Approximate logic:
 
 ```routeros
 /ipv6 dhcp-client
 add interface=<wan-interface> request=prefix pool-name=isp-ipv6-pool add-default-route=yes
 ```
 
-Параметры могут отличаться в зависимости от провайдера. Проверяйте на конкретной линии.
+Parameters may differ depending on the provider. Check them on the actual line.
 
-## Раздача prefix по VLAN
+## Distributing the prefix across VLANs
 
-Обычно каждой VLAN нужен `/64`:
+Each VLAN usually needs a `/64`:
 
 ```routeros
 /ipv6 address
@@ -63,11 +63,11 @@ add from-pool=isp-ipv6-pool interface=vlan30-guest advertise=yes
 add from-pool=isp-ipv6-pool interface=vlan40-iot advertise=yes
 ```
 
-Management VLAN можно включать осторожнее: не всем management devices нужен глобальный IPv6.
+Enable the Management VLAN more carefully: not every management device needs global IPv6.
 
 ## IPv6 firewall
 
-Отдельная цепочка firewall для IPv6 обязательна. Базовая логика:
+A separate IPv6 firewall is mandatory. Baseline logic:
 
 ```routeros
 /ipv6 firewall filter
@@ -87,17 +87,17 @@ add chain=forward action=drop in-interface-list=GUEST out-interface-list=!WAN co
 add chain=forward action=drop comment="ipv6 forward: drop rest"
 ```
 
-Это стартовая структура, не универсальный полный ruleset. ICMPv6 лучше детализировать осознанно, а не запрещать целиком.
+This is a starting structure, not a universal full ruleset. ICMPv6 should be detailed consciously, not blocked entirely.
 
-## DNS и RA
+## DNS and RA
 
-Клиенты должны получить DNS. Это может быть через RA options или DHCPv6, в зависимости от поддержки клиентов и RouterOS behavior.
+Clients must receive DNS. This can happen through RA options or DHCPv6, depending on client support and RouterOS behavior.
 
-Проверяйте на реальных клиентах: Windows, macOS, Linux, iOS, Android могут вести себя по-разному.
+Test on real clients: Windows, macOS, Linux, iOS, and Android can behave differently.
 
-## Как проверить результат
+## How to verify the result
 
-На MikroTik:
+On MikroTik:
 
 ```routeros
 /ipv6 dhcp-client print
@@ -107,34 +107,34 @@ add chain=forward action=drop comment="ipv6 forward: drop rest"
 /ping 2606:4700:4700::1111
 ```
 
-На клиенте:
+On a client:
 
-- есть IPv6 address из правильного prefix;
-- есть default gateway через RA;
-- работает IPv6 DNS/доступ;
-- Guest не видит internal IPv6 addresses;
-- WAN не открывает router management.
+- it has an IPv6 address from the correct prefix;
+- it has a default gateway through RA;
+- IPv6 DNS/access works;
+- Guest cannot see internal IPv6 addresses;
+- WAN does not expose router management.
 
-## Частые ошибки
+## Common mistakes
 
-Включить IPv6 и забыть firewall.
+Enabling IPv6 and forgetting the firewall.
 
-Скопировать IPv4 firewall и сломать ICMPv6.
+Copying IPv4 firewall and breaking ICMPv6.
 
-Ожидать NAT66 как основной security-механизм.
+Expecting NAT66 to be the main security mechanism.
 
-Раздать один prefix без понимания VLAN boundaries.
+Distributing one prefix without understanding VLAN boundaries.
 
-Не проверить, что DNS работает по IPv6.
+Not checking that DNS works over IPv6.
 
 ## Security notes
 
-IPv6 делает устройства глобально адресуемыми. Это нормально, если firewall настроен. Это опасно, если вы рассчитывали на NAT как на защиту.
+IPv6 makes devices globally addressable. That is fine when the firewall is configured. It is dangerous if you relied on NAT as protection.
 
-IPv6 policy должна соответствовать IPv4 intent: Guest остается guest, IoT остается недоверенным, management не открыт с WAN.
+IPv6 policy must match IPv4 intent: Guest remains guest, IoT remains untrusted, and management is not open from WAN.
 
-## Мини-вывод
+## Short takeaway
 
-IPv6 - отдельный стек с prefix delegation, RA/SLAAC, DHCPv6-нюансами и обязательным firewall. Его нужно включать осознанно, а не как checkbox.
+IPv6 is a separate stack with prefix delegation, RA/SLAAC, DHCPv6 nuances, and mandatory firewall. Enable it deliberately, not as a checkbox.
 
-Следующая статья будет про WireGuard на MikroTik: road-warrior, site-to-site и ограниченный доступ к VLAN.
+The next article is about WireGuard on MikroTik: road-warrior, site-to-site, and limited access to VLANs.

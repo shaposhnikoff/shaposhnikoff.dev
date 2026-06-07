@@ -1,49 +1,49 @@
 ---
-title: "QoS и traffic shaping: очереди, CAKE/FQ-CoDel и контроль перегрузки"
+title: "QoS and traffic shaping: queues, CAKE/FQ-CoDel, and congestion control"
 date: 2026-03-28
-summary: "QoS и traffic shaping на MikroTik: bottleneck shaping, queues, CAKE/FQ-CoDel, FastTrack и проверка latency."
+summary: "QoS and traffic shaping on MikroTik: bottleneck shaping, queues, CAKE/FQ-CoDel, FastTrack, and latency testing."
 tags: ["mikrotik","routeros","qos","traffic-shaping"]
 topics: ["networking"]
 toc: true
 ---
 
-# QoS и traffic shaping: очереди, CAKE/FQ-CoDel и контроль перегрузки
+# QoS and traffic shaping: queues, CAKE/FQ-CoDel, and congestion control
 
-QoS нужен не для "ускорить интернет", а для контроля перегрузки. Когда uplink забит, растет latency, ломаются звонки, VPN, игры и интерактивная работа. Traffic shaping помогает держать очередь под контролем.
+QoS is not for "making the internet faster"; it is for controlling congestion. When an uplink is saturated, latency rises and calls, VPN, games, and interactive work suffer. Traffic shaping helps keep the queue under control.
 
-На MikroTik RouterOS 7 есть разные механизмы очередей. Выбор зависит от версии, модели, FastTrack, типа трафика и цели.
+MikroTik RouterOS 7 has several queue mechanisms. The right choice depends on version, model, FastTrack, traffic type, and goal.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-FastTrack уже показал, что часть трафика может обходить queues. Поэтому QoS нужно проектировать вместе с FastTrack: либо отключить FastTrack для шейпируемого трафика, либо сделать исключения.
+FastTrack already showed that some traffic can bypass queues. That means QoS must be designed together with FastTrack: either disable FastTrack for shaped traffic or create exceptions.
 
-QoS обычно применяется на WAN bottleneck, а не "везде понемногу".
+QoS is usually applied at the WAN bottleneck, not "a little everywhere".
 
-## Основные понятия
+## Basic concepts
 
-Shaping - ограничение скорости чуть ниже реального bottleneck, чтобы очередь формировалась на вашем router, а не у провайдера.
+Shaping means limiting speed slightly below the real bottleneck so the queue forms on your router, not at the provider.
 
-FQ-CoDel/CAKE - алгоритмы, которые помогают снижать bufferbloat и справедливо распределять очередь между потоками. Доступность и поведение зависят от RouterOS version.
+FQ-CoDel/CAKE are algorithms that help reduce bufferbloat and fairly distribute the queue between flows. Availability and behavior depend on RouterOS version.
 
-Simple queues проще, queue tree гибче, но требует больше понимания.
+Simple queues are easier; queue tree is more flexible but requires more understanding.
 
-## Перед применением
+## Before applying anything
 
-Перед QoS:
+Before QoS:
 
 ```routeros
 /system backup save name=before-qos
 /export file=before-qos
 ```
 
-Измерьте реальные скорости без shaping:
+Measure real speeds without shaping:
 
-- download/upload в спокойное время;
-- latency idle;
-- latency под загрузкой;
-- CPU router под нагрузкой.
+- download/upload in a quiet period;
+- idle latency;
+- latency under load;
+- router CPU under load.
 
-Проверьте FastTrack:
+Check FastTrack:
 
 ```routeros
 /ip firewall filter print
@@ -52,42 +52,42 @@ Simple queues проще, queue tree гибче, но требует больш�
 /tool profile
 ```
 
-## Простая стратегия
+## Simple strategy
 
-Для домашней/homelab сети часто достаточно:
+For a home/homelab network, it is often enough to:
 
-- определить реальную upload/download скорость;
-- поставить shaping на 90-95% стабильной скорости;
-- отключить FastTrack или исключить traffic, который должен идти через queues;
-- проверить latency под нагрузкой;
-- не городить приоритеты без измерений.
+- determine real upload/download speed;
+- set shaping to 90-95% of stable speed;
+- disable FastTrack or exclude traffic that must go through queues;
+- test latency under load;
+- avoid complex priorities without measurements.
 
-## Пример simple queue
+## Example simple queue
 
-Примерный шаблон:
+Approximate template:
 
 ```routeros
 /queue simple
 add name=wan-shaping target=<lan-subnet> max-limit=<upload-rate>/<download-rate> comment="shape WAN bottleneck"
 ```
 
-Синтаксис и направление скоростей нужно проверять на вашей схеме. Для сложных VLAN и нескольких WAN simple queue может быть недостаточно.
+Check syntax and rate direction for your design. For complex VLANs and multiple WAN links, a simple queue may not be enough.
 
 ## CAKE/FQ-CoDel
 
-Если RouterOS version и устройство поддерживают нужные queue types, можно использовать современные алгоритмы против bufferbloat. Но нельзя обещать одинаковое поведение на всех моделях.
+If the RouterOS version and device support the required queue types, you can use modern algorithms against bufferbloat. But you cannot promise identical behavior on every model.
 
-Проверяйте доступные types:
+Check available types:
 
 ```routeros
 /queue type print
 ```
 
-Если CAKE/FQ-CoDel недоступны или CPU слабый, выбирайте более простой подход.
+If CAKE/FQ-CoDel is unavailable or the CPU is weak, choose a simpler approach.
 
-## Приоритеты
+## Priorities
 
-Приоритеты нужны, когда есть реальные классы трафика:
+Priorities are useful when real traffic classes exist:
 
 - VoIP/video calls;
 - VPN;
@@ -95,22 +95,22 @@ add name=wan-shaping target=<lan-subnet> max-limit=<upload-rate>/<download-rate>
 - bulk downloads;
 - backups.
 
-Не ставьте "все важное" в высокий приоритет. Если все важно, приоритетов нет.
+Do not put "everything important" into high priority. If everything is important, there are no priorities.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
-- latency idle;
-- latency при download;
-- latency при upload;
-- скорость не просела слишком сильно;
-- CPU не упирается в 100%;
-- queues counters растут;
-- VPN/звонки стали стабильнее;
-- FastTrack не обходит shaping.
+- idle latency;
+- latency during download;
+- latency during upload;
+- speed did not drop too much;
+- CPU does not stay at 100%;
+- queue counters grow;
+- VPN/calls are more stable;
+- FastTrack does not bypass shaping.
 
-Команды:
+Commands:
 
 ```routeros
 /queue simple print stats
@@ -119,26 +119,26 @@ add name=wan-shaping target=<lan-subnet> max-limit=<upload-rate>/<download-rate>
 /interface monitor-traffic <wan-interface>
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Ставить max-limit выше реальной скорости uplink.
+Setting max-limit above the real uplink speed.
 
-Оставить FastTrack и удивляться, что queues не работают.
+Leaving FastTrack enabled and wondering why queues do not work.
 
-Делать сложную классификацию без измерений.
+Building complex classification without measurements.
 
-Шейпить LAN вместо реального bottleneck.
+Shaping LAN instead of the real bottleneck.
 
-Игнорировать CPU и считать QoS бесплатным.
+Ignoring CPU and treating QoS as free.
 
 ## Security notes
 
-QoS не является security control, но влияет на доступность. Без shaping один backup или torrent может ухудшить VPN, monitoring и remote work.
+QoS is not a security control, but it affects availability. Without shaping, one backup or torrent can degrade VPN, monitoring, and remote work.
 
-Для management/VPN traffic можно предусмотреть приоритет, но это должно быть проверено, а не добавлено наугад.
+You can prioritize management/VPN traffic, but it must be tested, not added by guesswork.
 
-## Мини-вывод
+## Short takeaway
 
-QoS - это контроль очереди и latency под нагрузкой. Начинайте с измерений, шейпьте bottleneck, учитывайте FastTrack и не усложняйте классификацию без причины.
+QoS is queue control and latency under load. Start with measurements, shape the bottleneck, account for FastTrack, and do not complicate classification without a reason.
 
-Следующая статья будет про Dual WAN и failover.
+The next article is about Dual WAN and failover.

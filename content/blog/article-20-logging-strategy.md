@@ -1,48 +1,48 @@
 ---
-title: "Logging strategy: какие события писать, куда отправлять и как не утопить роутер логами"
+title: "Logging strategy: which events to write, where to send them, and how not to drown the router in logs"
 date: 2026-03-30
-summary: "Logging strategy для MikroTik: security events, firewall prefixes, remote syslog, script logs и контроль шума."
+summary: "Logging strategy for MikroTik: security events, firewall prefixes, remote syslog, script logs, and noise control."
 tags: ["mikrotik","routeros","logging","syslog"]
 topics: ["networking"]
 toc: true
 ---
 
-# Logging strategy: какие события писать, куда отправлять и как не утопить роутер логами
+# Logging strategy: which events to write, where to send them, and how not to drown the router in logs
 
-Логи нужны не для галочки. Они помогают понять, что произошло: почему упал WAN, кто пытается подключиться к WireGuard, какие firewall drop срабатывают, когда не прошел backup и почему DHCP pool закончился.
+Logs are not for checking a box. They help you understand what happened: why WAN went down, who tried to connect to WireGuard, which firewall drops triggered, when a backup failed, and why a DHCP pool ran out.
 
-Но на роутере мало ресурсов. Если логировать все подряд, можно получить шум, износ storage и потерю полезного сигнала.
+But the router has limited resources. If you log everything, you get noise, storage wear, and loss of useful signal.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-После firewall, VPN, DNS и dual WAN сеть уже имеет много событий. Logging strategy определяет, какие из них важны, где они хранятся и как используются для monitoring/alerts.
+After firewall, VPN, DNS, and dual WAN, the network already has many events. Logging strategy defines which ones matter, where they are stored, and how they are used for monitoring/alerts.
 
-Следующая статья будет про monitoring и alerts, где логи станут одним из источников сигналов.
+The next article is about monitoring and alerts, where logs become one of the signal sources.
 
-## Что логировать
+## What to log
 
-Базовые категории:
+Baseline categories:
 
-| Категория | Примеры |
+| Category | Examples |
 | --- | --- |
 | Security | WAN drops, failed login, VPN peer events |
 | Network | WAN up/down, DHCP problems, route changes |
 | Operations | backup success/failure, script errors |
 | Performance | CPU/RAM warnings, interface errors |
-| DNS/firewall policy | только важные deny, не весь шум |
+| DNS/firewall policy | important deny events only, not all noise |
 
-Не каждый dropped packet заслуживает записи.
+Not every dropped packet deserves a log entry.
 
-## Перед применением
+## Before applying anything
 
-Перед изменением logging:
+Before changing logging:
 
 ```routeros
 /system backup save name=before-logging
 /export file=before-logging
 ```
 
-Проверьте текущие правила:
+Check current rules:
 
 ```routeros
 /system logging print
@@ -51,20 +51,20 @@ toc: true
 
 ## Firewall logging
 
-Логируйте финальные deny осторожно:
+Log final denies carefully:
 
 ```routeros
 /ip firewall filter
 add chain=forward action=drop in-interface-list=GUEST out-interface-list=!WAN log=yes log-prefix="drop-guest" comment="guest: block internal"
 ```
 
-Prefix должен быть коротким и понятным. Для шумных правил используйте rate-limit, где это применимо, или логируйте только отдельные диагностические правила.
+The prefix should be short and understandable. For noisy rules, use rate-limit where applicable, or log only separate diagnostic rules.
 
-Не логируйте весь WAN scan noise постоянно, если у вас нет внешнего syslog и причины это хранить.
+Do not permanently log all WAN scan noise unless you have external syslog and a reason to keep it.
 
 ## Remote syslog
 
-Для нормальной истории лучше отправлять логи наружу:
+For normal history, send logs outside the router:
 
 ```routeros
 /system logging action
@@ -76,67 +76,67 @@ add topics=warning action=remote-syslog
 add topics=error action=remote-syslog
 ```
 
-Синтаксис и topics адаптируйте под вашу RouterOS и syslog server. Syslog server должен находиться в trusted сегменте, а firewall должен разрешать отправку только туда.
+Adapt syntax and topics to your RouterOS and syslog server. The syslog server should be in a trusted segment, and firewall should allow sending only there.
 
 ## Script logs
 
-Скрипты backup/failover/alerts должны писать понятные сообщения:
+Backup/failover/alert scripts should write clear messages:
 
 ```routeros
 :log info "backup: export completed"
 :log error "backup: upload failed"
 ```
 
-Если сообщение нельзя быстро найти по prefix, оно плохо подходит для эксплуатации.
+If a message cannot be found quickly by prefix, it is a poor operational log.
 
-## Retention и шум
+## Retention and noise
 
-На самом роутере логи ограничены. Поэтому:
+Logs on the router itself are limited. Therefore:
 
-- критичное отправляйте во внешний syslog;
-- debug включайте временно;
-- firewall deny логируйте выборочно;
-- используйте понятные prefixes;
-- документируйте, какие события считаются alert-worthy.
+- send critical events to external syslog;
+- enable debug only temporarily;
+- log firewall deny selectively;
+- use clear prefixes;
+- document which events are alert-worthy.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
-- локальный `/log print` показывает ожидаемые события;
-- remote syslog получает сообщения;
-- drop prefixes понятны;
-- шум не забивает логи;
-- script errors видны;
-- важные события можно найти за нужный период.
+- local `/log print` shows expected events;
+- remote syslog receives messages;
+- drop prefixes are understandable;
+- noise does not overwhelm logs;
+- script errors are visible;
+- important events can be found for the required period.
 
-Команды:
+Commands:
 
 ```routeros
 /system logging print
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Включить debug и забыть выключить.
+Enabling debug and forgetting to disable it.
 
-Логировать каждый WAN drop и потерять полезный сигнал.
+Logging every WAN drop and losing useful signal.
 
-Не отправлять логи наружу, а потом расследовать событие после reboot.
+Not sending logs externally, then investigating an event after reboot.
 
-Использовать одинаковые prefixes для разных правил.
+Using identical prefixes for different rules.
 
-Не логировать ошибки backup/scripts.
+Not logging backup/script errors.
 
 ## Security notes
 
-Логи могут содержать IP-адреса, имена устройств и operational-информацию. Syslog server должен быть защищен, а доступ к нему ограничен.
+Logs can contain IP addresses, device names, and operational information. The syslog server must be protected and access to it must be limited.
 
-Не отправляйте логи в недоверенные места без понимания данных, которые раскрываются.
+Do not send logs to untrusted places without understanding what data they disclose.
 
-## Мини-вывод
+## Short takeaway
 
-Logging strategy должна давать полезный сигнал: security events, WAN/VPN/DHCP/backup/script failures и важные deny. Логи нужно ограничивать, подписывать prefixes и по возможности выносить на remote syslog.
+Logging strategy should provide useful signal: security events, WAN/VPN/DHCP/backup/script failures, and important denies. Logs should be limited, labeled with prefixes, and preferably sent to remote syslog.
 
-Следующая статья будет про monitoring и alerts.
+The next article is about monitoring and alerts.

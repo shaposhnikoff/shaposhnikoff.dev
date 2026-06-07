@@ -1,27 +1,27 @@
 ---
-title: "Финальный security checklist: проверяем сеть перед тем, как считать ее готовой"
+title: "Final security checklist: verifying the network before calling it ready"
 date: 2026-04-03
-summary: "Финальный security checklist для MikroTik-сети: baseline, VLAN, firewall, Wi-Fi, IPv6, VPN, DNS, monitoring, backups и DR."
+summary: "Final security checklist for a MikroTik network: baseline, VLANs, firewall, Wi-Fi, IPv6, VPN, DNS, monitoring, backups, and DR."
 tags: ["mikrotik","routeros","security","checklist"]
 topics: ["networking"]
 toc: true
 ---
 
-# Финальный security checklist: проверяем сеть перед тем, как считать ее готовой
+# Final security checklist: verifying the network before calling it ready
 
-Сеть нельзя считать готовой только потому, что интернет работает. Готовая сеть сегментирована, управляется, наблюдается, документирована и восстанавливается.
+A network is not ready just because the internet works. A ready network is segmented, manageable, observable, documented, and recoverable.
 
-Финальный checklist помогает пройти по всем слоям: RouterOS baseline, VLAN, firewall, Wi-Fi, IPv6, VPN, DNS, monitoring, backups и DR.
+This final checklist helps review every layer: RouterOS baseline, VLANs, firewall, Wi-Fi, IPv6, VPN, DNS, monitoring, backups, and DR.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Это последняя статья серии. Она не добавляет новый механизм, а проверяет, что все предыдущие решения не противоречат друг другу и действительно работают.
+This is the last article in the series. It does not add a new mechanism; it checks that all previous decisions do not contradict each other and actually work.
 
-Checklist полезен после первичной настройки, перед переносом в production, после крупных изменений и перед отпуском администратора.
+The checklist is useful after initial setup, before moving to production, after major changes, and before the administrator goes on vacation.
 
-## Перед применением
+## Before applying anything
 
-Перед финальной ревизией ничего опасного применять не нужно. Но перед исправлениями, найденными по checklist:
+No dangerous action is needed before the final review. But before fixing issues found by the checklist:
 
 ```routeros
 /system backup save name=before-final-security-fixes
@@ -29,21 +29,21 @@ Checklist полезен после первичной настройки, пе�
 /system console safe-mode
 ```
 
-Не исправляйте firewall/VLAN удаленно без rollback-плана.
+Do not fix firewall/VLAN remotely without a rollback plan.
 
 ## Baseline
 
-- RouterOS обновлен до выбранной стабильной версии.
-- RouterBOARD firmware проверен.
-- Дефолтный `admin` отключен или защищен.
-- Пароли сильные и уникальные.
-- Ненужные services отключены.
-- WinBox/SSH/WebFig/API не доступны с WAN.
-- Timezone и NTP настроены.
-- Identity устройства понятна.
-- Есть свежий backup и export.
+- RouterOS is updated to the selected stable version.
+- RouterBOARD firmware has been checked.
+- Default `admin` is disabled or protected.
+- Passwords are strong and unique.
+- Unnecessary services are disabled.
+- WinBox/SSH/WebFig/API are not reachable from WAN.
+- Timezone and NTP are configured.
+- Device identity is clear.
+- Fresh backup and export exist.
 
-Проверки:
+Checks:
 
 ```routeros
 /system package print
@@ -53,17 +53,17 @@ Checklist полезен после первичной настройки, пе�
 /system clock print
 ```
 
-## VLAN и addressing
+## VLAN and addressing
 
-- У каждой VLAN есть назначение.
-- Подсети не конфликтуют с VPN/site-to-site.
-- Management VLAN определена.
-- Trunk/access ports документированы.
-- PVID проверены.
-- Bridge VLAN table соответствует port map.
-- Guest/IoT не находятся в LAN broadcast domain.
+- Every VLAN has a purpose.
+- Subnets do not conflict with VPN/site-to-site.
+- Management VLAN is defined.
+- Trunk/access ports are documented.
+- PVIDs are checked.
+- Bridge VLAN table matches the port map.
+- Guest/IoT are not in the LAN broadcast domain.
 
-Проверки:
+Checks:
 
 ```routeros
 /interface bridge port print
@@ -72,17 +72,17 @@ Checklist полезен после первичной настройки, пе�
 /ip address print
 ```
 
-## DHCP и DNS
+## DHCP and DNS
 
-- DHCP server работает только на нужных VLAN.
-- Pools имеют запас.
-- Gateway/DNS options корректны.
-- DNS resolver не открыт с WAN.
-- DNS policy различает LAN/Guest/IoT/VPN.
-- Direct DNS наружу заблокирован, если это требуется policy.
-- DoH limitations задокументированы.
+- DHCP server works only on the required VLANs.
+- Pools have spare capacity.
+- Gateway/DNS options are correct.
+- DNS resolver is not open from WAN.
+- DNS policy distinguishes LAN/Guest/IoT/VPN.
+- Direct DNS outward is blocked if policy requires it.
+- DoH limitations are documented.
 
-Проверки:
+Checks:
 
 ```routeros
 /ip dhcp-server print
@@ -91,20 +91,20 @@ Checklist полезен после первичной настройки, пе�
 /ip dns print
 ```
 
-## Firewall IPv4
+## IPv4 firewall
 
-- `input` защищает сам роутер.
-- `forward` управляет inter-VLAN и internet traffic.
-- Established/related rules стоят в начале.
-- Invalid drop есть.
-- WAN to router drop есть.
-- Management разрешен только trusted/VPN.
-- Guest имеет только internet + нужные DHCP/DNS.
-- IoT не инициирует доступ в LAN/MGMT.
-- Нет broad allow between VLAN без причины.
-- Drop rules имеют понятные prefixes, если логируются.
+- `input` protects the router itself.
+- `forward` controls inter-VLAN and internet traffic.
+- Established/related rules are at the beginning.
+- Invalid drop exists.
+- WAN-to-router drop exists.
+- Management is allowed only from trusted/VPN.
+- Guest has only internet plus required DHCP/DNS.
+- IoT does not initiate access to LAN/MGMT.
+- There is no broad allow between VLANs without a reason.
+- Drop rules have clear prefixes if logged.
 
-Проверки:
+Checks:
 
 ```routeros
 /ip firewall filter print stats
@@ -112,35 +112,35 @@ Checklist полезен после первичной настройки, пе�
 /log print
 ```
 
-## NAT и публикация сервисов
+## NAT and published services
 
-- Masquerade ограничен WAN.
-- Port forwards документированы.
-- Для каждого dstnat есть соответствующий forward allow.
-- Management-сервисы не опубликованы.
-- Hairpin NAT или split DNS проверены.
-- Inbound services имеют обновления, auth, TLS и monitoring.
+- Masquerade is limited to WAN.
+- Port forwards are documented.
+- Every dstnat has a matching forward allow.
+- Management services are not published.
+- Hairpin NAT or split DNS has been checked.
+- Inbound services have updates, auth, TLS, and monitoring.
 
-## Wi-Fi и CAPsMAN
+## Wi-Fi and CAPsMAN
 
-- Main/Guest/IoT SSID ведут в правильные VLAN.
-- Guest client isolation включен, если нужно.
-- IoT SSID совместим с устройствами, но изолирован firewall.
-- AP management находится в Management VLAN.
-- Trunk до AP несет нужные tagged VLAN.
-- RouterOS 7 WiFi/wireless package не смешаны в конфиге без понимания.
+- Main/Guest/IoT SSIDs map to the correct VLANs.
+- Guest client isolation is enabled if needed.
+- IoT SSID is compatible with devices but isolated by firewall.
+- AP management is in the Management VLAN.
+- Trunk to AP carries the required tagged VLANs.
+- RouterOS 7 WiFi/wireless packages are not mixed in the config without understanding.
 
 ## IPv6
 
-- IPv6 включен только осознанно.
-- Prefix delegation работает.
-- Каждая VLAN получает ожидаемый prefix.
-- IPv6 firewall настроен отдельно.
-- ICMPv6 не заблокирован blindly.
-- Guest/IoT policy соблюдается в IPv6.
-- Management не открыт с WAN по IPv6.
+- IPv6 is enabled only deliberately.
+- Prefix delegation works.
+- Each VLAN receives the expected prefix.
+- IPv6 firewall is configured separately.
+- ICMPv6 is not blocked blindly.
+- Guest/IoT policy is respected in IPv6.
+- Management is not open from WAN over IPv6.
 
-Проверки:
+Checks:
 
 ```routeros
 /ipv6 address print
@@ -150,75 +150,75 @@ Checklist полезен после первичной настройки, пе�
 
 ## WireGuard
 
-- У каждого устройства отдельный peer.
-- Allowed-address настроен осознанно.
-- VPN subnet не конфликтует с LAN/remote networks.
-- WireGuard UDP port разрешен в input только как нужно.
-- VPN peers имеют ограниченный доступ к VLAN.
-- Потерянный peer можно быстро отозвать.
-- Road-warrior и site-to-site не смешаны.
+- Each device has a separate peer.
+- Allowed-address is configured deliberately.
+- VPN subnet does not conflict with LAN/remote networks.
+- WireGuard UDP port is allowed in input only as needed.
+- VPN peers have limited access to VLANs.
+- A lost peer can be revoked quickly.
+- Road-warrior and site-to-site are not mixed.
 
-## FastTrack и QoS
+## FastTrack and QoS
 
-- FastTrack не ломает QoS, queues, mangle и policy routing.
-- Traffic shaping проверен под нагрузкой.
-- WAN bottleneck шейпится ниже реальной скорости.
-- CPU не перегружается.
-- Исключения FastTrack документированы.
+- FastTrack does not break QoS, queues, mangle, or policy routing.
+- Traffic shaping has been tested under load.
+- WAN bottleneck is shaped below real speed.
+- CPU is not overloaded.
+- FastTrack exceptions are documented.
 
 ## Dual WAN
 
-- Оба WAN входят в firewall policy как WAN.
-- Backup WAN не открывает management.
-- NAT работает на обоих WAN.
-- Failover и failback протестированы.
-- DNS работает при failover.
-- WireGuard/inbound services имеют план для смены WAN.
-- Alerts приходят при переходе на backup.
+- Both WAN links are included in firewall policy as WAN.
+- Backup WAN does not expose management.
+- NAT works on both WAN links.
+- Failover and failback have been tested.
+- DNS works during failover.
+- WireGuard/inbound services have a plan for WAN changes.
+- Alerts arrive when switching to backup.
 
 ## Logging, monitoring, backups, DR
 
-- Важные события логируются с понятными prefixes.
-- Remote syslog или внешний сбор логов настроен, если нужен.
-- Monitoring покрывает WAN, VPN, CPU/RAM, DHCP pools, DNS, backups.
-- Alerts actionable и не шумят.
-- Automated backups создают binary backup и export.
-- Backup хранится вне роутера.
-- Restore testing выполнялся.
-- DR runbook доступен вне сети.
+- Important events are logged with clear prefixes.
+- Remote syslog or external log collection is configured if needed.
+- Monitoring covers WAN, VPN, CPU/RAM, DHCP pools, DNS, backups.
+- Alerts are actionable and not noisy.
+- Automated backups create binary backup and export.
+- Backup is stored outside the router.
+- Restore testing has been done.
+- DR runbook is available outside the network.
 
-## Финальная проверка с клиента
+## Final client-side check
 
-Проверьте реальным устройством:
+Check with real devices:
 
-- LAN получает правильный IP и интернет.
-- Guest получает guest IP и не видит LAN/MGMT.
-- IoT получает IoT IP и не инициирует доступ в LAN/MGMT.
-- VPN-клиент видит только разрешенные сети.
-- WAN scan не видит management ports.
-- IPv6 policy соответствует IPv4 intent.
-- DNS filtering работает согласно VLAN policy.
+- LAN receives the correct IP and internet.
+- Guest receives a guest IP and cannot see LAN/MGMT.
+- IoT receives an IoT IP and cannot initiate access to LAN/MGMT.
+- VPN client sees only allowed networks.
+- WAN scan does not see management ports.
+- IPv6 policy matches IPv4 intent.
+- DNS filtering works according to VLAN policy.
 
-## Частые ошибки
+## Common mistakes
 
-Проверять только с LAN-ноутбука администратора.
+Checking only from the administrator's LAN laptop.
 
-Не тестировать Guest/IoT/VPN как реальные клиенты.
+Not testing Guest/IoT/VPN as real clients.
 
-Забыть IPv6.
+Forgetting IPv6.
 
-Не проверять failover и restore.
+Not testing failover and restore.
 
-Оставить временные allow rules после настройки.
+Leaving temporary allow rules after setup.
 
 ## Security notes
 
-Checklist не заменяет регулярную ревизию. Сеть меняется: появляются новые устройства, новые провайдеры, новые сервисы и новые исключения.
+The checklist does not replace regular review. Networks change: new devices, providers, services, and exceptions appear.
 
-Любое исключение должно иметь владельца, причину и дату пересмотра.
+Every exception should have an owner, reason, and review date.
 
-## Мини-вывод
+## Short takeaway
 
-Готовая MikroTik-сеть - это не набор команд, а проверяемая система: сегментация, firewall, management boundary, DNS policy, VPN, Wi-Fi, IPv6, monitoring, backups и DR.
+A ready MikroTik network is not a set of commands; it is a verifiable system: segmentation, firewall, management boundary, DNS policy, VPN, Wi-Fi, IPv6, monitoring, backups, and DR.
 
-На этом серия “Микротик с нуля” заканчивает базовый production-ready контур. Дальше можно углубляться в конкретные сценарии: site-to-site, advanced routing, BGP, централизованный monitoring, zero-trust access и automation.
+This completes the baseline production-ready path for the "MikroTik from scratch" series. From here, you can go deeper into specific scenarios: site-to-site, advanced routing, BGP, centralized monitoring, zero-trust access, and automation.

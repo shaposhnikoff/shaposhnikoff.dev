@@ -1,110 +1,110 @@
 ---
-title: "Automated backups: binary backup, export, scheduler и хранение вне роутера"
+title: "Automated backups: binary backup, export, scheduler, and off-router storage"
 date: 2026-04-01
-summary: "Automated backups для MikroTik: binary backup, export, scheduler, external storage, retention и restore testing."
+summary: "Automated backups for MikroTik: binary backup, export, scheduler, external storage, retention, and restore testing."
 tags: ["mikrotik","routeros","backup","automation"]
 topics: ["networking"]
 toc: true
 ---
 
-# Automated backups: binary backup, export, scheduler и хранение вне роутера
+# Automated backups: binary backup, export, scheduler, and off-router storage
 
-Backup нужен не тогда, когда все работает, а когда вы ошиблись, устройство умерло или обновление пошло не так. На MikroTik важно различать binary backup и `/export`.
+Backup is needed not when everything works, but when you make a mistake, the device dies, or an update goes wrong. On MikroTik, it is important to distinguish binary backup from `/export`.
 
-Нормальная стратегия включает автоматическое создание, хранение вне роутера, проверку восстановления и контроль успешности.
+A normal strategy includes automatic creation, storage outside the router, restore testing, and success monitoring.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Мы уже построили сложную конфигурацию: VLAN, firewall, NAT, WireGuard, DNS, monitoring. Потерять ее без backup - недопустимо.
+We have already built a complex configuration: VLANs, firewall, NAT, WireGuard, DNS, monitoring. Losing it without backup is unacceptable.
 
-Disaster recovery в следующей статье будет опираться на то, что backup/export уже есть.
+Disaster recovery in the next article relies on backup/export already existing.
 
-## Binary backup и export
+## Binary backup and export
 
 Binary backup:
 
-- подходит для восстановления на том же устройстве;
-- может содержать чувствительные данные;
-- зависит от модели/версии;
-- удобен для быстрого rollback.
+- suitable for restore on the same device;
+- may contain sensitive data;
+- depends on model/version;
+- convenient for quick rollback.
 
 `/export`:
 
-- читаемый текст;
-- удобен для аудита;
-- лучше для переноса логики на другую модель;
-- sensitive values могут быть скрыты или показаны в зависимости от параметров.
+- readable text;
+- useful for audits;
+- better for moving logic to another model;
+- sensitive values may be hidden or shown depending on parameters.
 
-Нужны оба.
+You need both.
 
-## Перед применением
+## Before applying anything
 
-Перед настройкой automation:
+Before configuring automation:
 
 ```routeros
 /system backup save name=before-backup-automation
 /export file=before-backup-automation
 ```
 
-Определите, куда выгружать файлы: SFTP/SCP, FTP только в доверенной сети, SMB, внешний collector или ручной pull. Не храните единственную копию на роутере.
+Define where files will be uploaded: SFTP/SCP, FTP only in a trusted network, SMB, external collector, or manual pull. Do not keep the only copy on the router.
 
-## Ручной backup
+## Manual backup
 
 ```routeros
 /system backup save name=manual-backup
 /export file=manual-export
 ```
 
-Если нужен export с sensitive для закрытого хранилища, используйте соответствующие параметры RouterOS осознанно и защищайте файл как секрет.
+If an export with sensitive values is needed for closed storage, use the relevant RouterOS parameters deliberately and protect the file as a secret.
 
 ## Scheduler
 
-Примерная логика scheduler:
+Approximate scheduler logic:
 
 ```routeros
 /system scheduler
 add name=nightly-export interval=1d start-time=03:00:00 on-event="/export file=nightly-export"
 ```
 
-Для production этого мало: нужно имя с датой, upload наружу, обработка ошибок и логирование результата.
+For production this is not enough: you need a date in the name, external upload, error handling, and result logging.
 
-## Upload наружу
+## External upload
 
-Скрипт должен:
+The script should:
 
-- создать backup/export;
-- выгрузить файл на внешний host;
-- записать success/failure в log;
-- не хранить секреты в открытом виде без необходимости;
-- по возможности чистить старые локальные файлы.
+- create backup/export;
+- upload the file to an external host;
+- write success/failure to log;
+- avoid storing secrets in clear text unless necessary;
+- clean old local files where possible.
 
-RouterOS scripting чувствителен к синтаксису. Проверяйте скрипты на тестовом устройстве.
+RouterOS scripting is syntax-sensitive. Test scripts on a spare device.
 
-## Хранение и retention
+## Storage and retention
 
-Практичная схема:
+Practical scheme:
 
-- daily exports за 7-14 дней;
-- weekly backups за 1-3 месяца;
-- копия перед крупными изменениями;
-- отдельное хранение перед RouterOS upgrade;
-- доступ только администраторам.
+- daily exports for 7-14 days;
+- weekly backups for 1-3 months;
+- a copy before major changes;
+- separate storage before RouterOS upgrade;
+- administrator-only access.
 
-Backup без retention превращается либо в мусор, либо в единственный старый файл.
+Backup without retention becomes either clutter or one old file.
 
 ## Restore testing
 
-Непроверенный backup - это предположение. Периодически проверяйте:
+An untested backup is an assumption. Periodically check:
 
-- файл создается;
-- файл выгружается;
-- файл читается;
-- export можно применить по частям на тестовом CHR;
-- binary backup подходит для конкретного устройства.
+- the file is created;
+- the file is uploaded;
+- the file is readable;
+- export can be applied in parts on a test CHR;
+- binary backup matches the specific device.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
 ```routeros
 /file print
@@ -112,34 +112,34 @@ Backup без retention превращается либо в мусор, либ�
 /log print
 ```
 
-Снаружи:
+Outside the router:
 
-- backup появился в хранилище;
-- имя содержит дату/устройство;
-- размер файла не нулевой;
-- права доступа ограничены;
-- monitoring видит last success.
+- backup appeared in storage;
+- the name contains date/device;
+- file size is non-zero;
+- access permissions are restricted;
+- monitoring sees last success.
 
-## Частые ошибки
+## Common mistakes
 
-Хранить backup только на роутере.
+Storing backup only on the router.
 
-Делать только binary backup и не иметь readable export.
+Creating only binary backup and having no readable export.
 
-Не логировать failure upload.
+Not logging upload failure.
 
-Коммитить export с secrets в git.
+Committing exports with secrets to git.
 
-Никогда не проверять restore.
+Never testing restore.
 
 ## Security notes
 
-Backup может содержать ключи, пароли, WireGuard private keys, VPN secrets и внутреннюю топологию. Это секретный артефакт.
+Backup can contain keys, passwords, WireGuard private keys, VPN secrets, and internal topology. It is a secret artifact.
 
-Хранилище backup должно быть защищено не хуже самого роутера.
+Backup storage must be protected at least as well as the router itself.
 
-## Мини-вывод
+## Short takeaway
 
-Automated backups - это binary backup, export, расписание, external storage, retention, logs и restore testing. Файл на самом роутере не считается достаточной защитой.
+Automated backups are binary backup, export, schedule, external storage, retention, logs, and restore testing. A file stored only on the router is not enough protection.
 
-Следующая статья будет про disaster recovery.
+The next article is about disaster recovery.

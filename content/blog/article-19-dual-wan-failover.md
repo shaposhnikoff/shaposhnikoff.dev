@@ -1,41 +1,41 @@
 ---
-title: "Dual WAN и failover: резервный провайдер, маршруты, проверки и уведомления"
+title: "Dual WAN and failover: backup ISP, routes, checks, and notifications"
 date: 2026-03-29
-summary: "Dual WAN на MikroTik: route distance, recursive checks, NAT, DNS, WireGuard, failover/failback и уведомления."
+summary: "Dual WAN on MikroTik: route distance, recursive checks, NAT, DNS, WireGuard, failover/failback, and notifications."
 tags: ["mikrotik","routeros","dual-wan","failover"]
 topics: ["networking"]
 toc: true
 ---
 
-# Dual WAN и failover: резервный провайдер, маршруты, проверки и уведомления
+# Dual WAN and failover: backup ISP, routes, checks, and notifications
 
-Dual WAN нужен, когда доступность важнее простоты. Резервный провайдер может спасти удаленную работу, VPN, мониторинг и сервисы, но только если failover настроен осознанно.
+Dual WAN is useful when availability matters more than simplicity. A backup ISP can save remote work, VPN, monitoring, and services, but only if failover is configured deliberately.
 
-Просто добавить второй default route недостаточно. Нужно понимать distance, gateway checks, routing tables, NAT, DNS и уведомления.
+Simply adding a second default route is not enough. You need to understand distance, gateway checks, routing tables, NAT, DNS, and notifications.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-У нас уже есть firewall, NAT, VPN, DNS policy и QoS. Dual WAN затрагивает все эти слои:
+We already have firewall, NAT, VPN, DNS policy, and QoS. Dual WAN touches all of these layers:
 
-- default route может переключаться;
-- NAT должен работать на обоих WAN;
-- WireGuard endpoint может измениться;
-- DNS и monitoring должны переживать failover;
-- port forwarding с резервного WAN может быть невозможен или требовать отдельной схемы.
+- default route can switch;
+- NAT must work on both WAN links;
+- WireGuard endpoint can change;
+- DNS and monitoring must survive failover;
+- port forwarding from backup WAN may be impossible or require a separate design.
 
-## Основные понятия
+## Basic concepts
 
-Primary WAN - основной провайдер.
+Primary WAN is the main provider.
 
-Secondary WAN - резервный провайдер, LTE/5G/второй ISP.
+Secondary WAN is the backup provider, LTE/5G, or second ISP.
 
-Route distance - приоритет маршрута. Меньше distance - предпочтительнее.
+Route distance is route priority. Lower distance is preferred.
 
-Check gateway или recursive routing - способ понять, что путь реально работает, а не просто интерфейс поднят.
+Check gateway or recursive routing is a way to determine that the path actually works, not just that the interface is up.
 
-## Перед применением
+## Before applying anything
 
-Перед Dual WAN:
+Before Dual WAN:
 
 ```routeros
 /system backup save name=before-dual-wan
@@ -43,18 +43,18 @@ Check gateway или recursive routing - способ понять, что пу�
 /system console safe-mode
 ```
 
-Соберите данные:
+Collect data:
 
-- тип каждого WAN: DHCP/static/PPPoE/LTE;
+- type of each WAN: DHCP/static/PPPoE/LTE;
 - gateway;
 - public/private IP;
-- нужен ли inbound access;
-- какие сервисы зависят от внешнего IP;
-- как отправлять alerts.
+- whether inbound access is needed;
+- which services depend on the external IP;
+- how alerts will be sent.
 
-## Простая схема с distance
+## Simple design with distance
 
-Если gateway checks достаточны:
+If gateway checks are enough:
 
 ```routeros
 /ip route
@@ -62,9 +62,9 @@ add dst-address=0.0.0.0/0 gateway=<primary-gateway> distance=1 comment="default 
 add dst-address=0.0.0.0/0 gateway=<secondary-gateway> distance=2 comment="default via backup WAN"
 ```
 
-Для DHCP/PPPoE routes часть параметров может приходить автоматически. Не дублируйте маршруты без понимания.
+For DHCP/PPPoE routes, some parameters may be received automatically. Do not duplicate routes without understanding them.
 
-## NAT для двух WAN
+## NAT for two WAN links
 
 ```routeros
 /ip firewall nat
@@ -72,62 +72,62 @@ add chain=srcnat out-interface=<primary-wan> action=masquerade comment="srcnat p
 add chain=srcnat out-interface=<secondary-wan> action=masquerade comment="srcnat backup WAN"
 ```
 
-Можно использовать `out-interface-list=WAN`, если оба WAN входят в список и политика одинаковая.
+You can use `out-interface-list=WAN` if both WAN links are in the list and policy is the same.
 
 ## Recursive checks
 
-Иногда link up не означает internet up. Recursive routing позволяет проверять достижимость внешнего target через конкретного провайдера. Это надежнее, но сложнее и требует аккуратной настройки host routes.
+Sometimes link up does not mean internet up. Recursive routing can check reachability of an external target through a specific provider. This is more reliable, but more complex and requires careful host-route configuration.
 
-Не внедряйте recursive routing без теста на стенде: ошибки могут сделать failover нестабильным.
+Do not deploy recursive routing without a lab test: mistakes can make failover unstable.
 
-## DNS при failover
+## DNS during failover
 
-Если DNS resolver доступен только через primary WAN, при failover клиенты могут потерять DNS. Используйте resolver, доступный через оба WAN, или локальный cache с корректными upstream.
+If the DNS resolver is reachable only through primary WAN, clients can lose DNS during failover. Use a resolver reachable through both WAN links or a local cache with correct upstreams.
 
-Проверьте не только ping IP, но и resolution:
+Check not only IP ping, but also resolution:
 
 ```routeros
 /resolve google.com
 /ping 8.8.8.8
 ```
 
-## WireGuard и inbound services
+## WireGuard and inbound services
 
-Если WireGuard endpoint опубликован на primary WAN, при failover внешний адрес меняется. Варианты:
+If the WireGuard endpoint is published on primary WAN, the external address changes during failover. Options:
 
 - dynamic DNS;
-- WireGuard client инициирует исходящее подключение;
+- WireGuard client initiates an outbound connection;
 - backup endpoint;
-- VPS/hub как стабильная точка;
-- без inbound на backup WAN.
+- VPS/hub as a stable point;
+- no inbound access on backup WAN.
 
-Port forwarding на LTE/CGNAT может быть невозможен. Это нужно принять заранее.
+Port forwarding over LTE/CGNAT may be impossible. Accept this in advance.
 
-## Уведомления
+## Notifications
 
-Failover без уведомлений - скрытая деградация. Нужно знать, что сеть работает через backup:
+Failover without notifications is hidden degradation. You need to know that the network is running on backup:
 
 - log events;
 - Telegram/email/webhook notification;
 - monitoring check;
 - periodic report.
 
-В RouterOS это можно делать через scripts/scheduler или внешний monitoring.
+In RouterOS, this can be done through scripts/scheduler or external monitoring.
 
-## Как проверить результат
+## How to verify the result
 
-Тест:
+Test:
 
-1. Проверить normal state: primary active.
-2. Отключить primary WAN физически или логически.
-3. Проверить переход на backup.
-4. Проверить DNS.
-5. Проверить VPN/critical services.
-6. Вернуть primary.
-7. Проверить failback.
-8. Проверить уведомления.
+1. Check normal state: primary active.
+2. Disconnect primary WAN physically or logically.
+3. Check transition to backup.
+4. Check DNS.
+5. Check VPN/critical services.
+6. Restore primary.
+7. Check failback.
+8. Check notifications.
 
-Команды:
+Commands:
 
 ```routeros
 /ip route print
@@ -137,26 +137,26 @@ Failover без уведомлений - скрытая деградация. Н
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Проверять только interface up/down, а не реальный internet path.
+Checking only interface up/down, not the real internet path.
 
-Забыть NAT для backup WAN.
+Forgetting NAT for backup WAN.
 
-Не проверить DNS при failover.
+Not checking DNS during failover.
 
-Ожидать inbound port forwarding через CGNAT.
+Expecting inbound port forwarding through CGNAT.
 
-Не уведомлять о переходе на backup.
+Not notifying about transition to backup.
 
 ## Security notes
 
-Backup WAN не должен открывать management. Interface list `WAN` должна включать оба WAN, а firewall input drop должен применяться к обоим.
+Backup WAN must not expose management. Interface list `WAN` must include both WAN links, and the firewall input drop must apply to both.
 
-При failover security policy не должна становиться слабее.
+Security policy must not become weaker during failover.
 
-## Мини-вывод
+## Short takeaway
 
-Dual WAN - это не только второй кабель. Нужны маршруты, проверки, NAT, DNS, VPN-план и уведомления. Настройка должна быть протестирована как отказ, а не только прочитана в конфиге.
+Dual WAN is not just a second cable. It needs routes, checks, NAT, DNS, a VPN plan, and notifications. The setup must be tested as a failure scenario, not only read in the config.
 
-Следующая статья будет про logging strategy: какие события писать и как не утопить роутер логами.
+The next article is about logging strategy: which events to write and how not to drown the router in logs.

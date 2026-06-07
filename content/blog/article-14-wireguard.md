@@ -1,33 +1,33 @@
 ---
-title: "WireGuard на MikroTik: road-warrior, site-to-site и ограниченный доступ к VLAN"
+title: "WireGuard on MikroTik: road-warrior, site-to-site, and limited access to VLANs"
 date: 2026-03-24
-summary: "Настройка WireGuard на MikroTik для road-warrior и site-to-site сценариев с ограниченным доступом к VLAN."
+summary: "Configuring WireGuard on MikroTik for road-warrior and site-to-site scenarios with limited VLAN access."
 tags: ["mikrotik","routeros","wireguard","vpn"]
 topics: ["networking"]
 toc: true
 ---
 
-# WireGuard на MikroTik: road-warrior, site-to-site и ограниченный доступ к VLAN
+# WireGuard on MikroTik: road-warrior, site-to-site, and limited access to VLANs
 
-WireGuard - хороший способ дать удаленный доступ к сети без публикации WinBox, SSH или WebFig в интернет. Но VPN не должен автоматически означать "полный доступ ко всему".
+WireGuard is a good way to provide remote network access without exposing WinBox, SSH, or WebFig to the internet. But VPN should not automatically mean "full access to everything".
 
-В RouterOS 7 WireGuard встроен и хорошо подходит для road-warrior клиентов и site-to-site связей, если правильно настроить allowed-address, routing и firewall.
+In RouterOS 7, WireGuard is built in and works well for road-warrior clients and site-to-site links if allowed-address, routing, and firewall are configured correctly.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Management с WAN закрыт. Для удаленного администрирования и доступа к внутренним сервисам нужен защищенный вход. WireGuard становится отдельным VPN-сегментом, а firewall решает, какие VLAN доступны конкретным peers.
+Management from WAN is closed. For remote administration and access to internal services, you need a protected entry point. WireGuard becomes a separate VPN segment, and the firewall decides which VLANs are available to specific peers.
 
-## Road-warrior и site-to-site
+## Road-warrior and site-to-site
 
-Road-warrior - ноутбук или телефон администратора подключается к домашней/офисной сети.
+Road-warrior means an administrator laptop or phone connects to the home/office network.
 
-Site-to-site - два роутера соединяют две сети, например дом и офис.
+Site-to-site means two routers connect two networks, for example home and office.
 
-У них разные allowed-address и routing. Не смешивайте их в один шаблон.
+They have different allowed-address and routing requirements. Do not force them into one template.
 
-## Перед применением
+## Before applying anything
 
-Перед настройкой VPN:
+Before configuring VPN:
 
 ```routeros
 /system backup save name=before-wireguard
@@ -35,20 +35,20 @@ Site-to-site - два роутера соединяют две сети, нап�
 /system console safe-mode
 ```
 
-Подготовьте:
+Prepare:
 
-- UDP port для WireGuard;
+- UDP port for WireGuard;
 - VPN subnet;
-- список peers;
-- какие VLAN доступны каждому peer;
-- где хранить private keys;
-- как отозвать доступ.
+- peer list;
+- which VLANs each peer may access;
+- where private keys will be stored;
+- how access will be revoked.
 
-Не публикуйте management-сервисы вместо VPN.
+Do not publish management services instead of VPN.
 
 ## WireGuard interface
 
-Пример:
+Example:
 
 ```routeros
 /interface wireguard
@@ -58,29 +58,29 @@ add name=wg-roadwarrior listen-port=<udp-port> comment="Road-warrior VPN"
 add address=10.10.90.1/24 interface=wg-roadwarrior comment="WireGuard gateway"
 ```
 
-Ключи RouterOS создаст для interface. Private key нужно защищать как секрет.
+RouterOS will create keys for the interface. The private key must be protected as a secret.
 
-## Peer для road-warrior
+## Peer for road-warrior
 
 ```routeros
 /interface wireguard peers
 add interface=wg-roadwarrior public-key="<peer-public-key>" allowed-address=10.10.90.10/32 comment="admin laptop"
 ```
 
-`allowed-address` на MikroTik для road-warrior обычно содержит VPN IP конкретного клиента `/32`. На клиенте allowed IPs определяют, какой трафик пойдет в туннель: только внутренние сети или весь интернет.
+On MikroTik, `allowed-address` for a road-warrior peer usually contains the specific client's VPN IP as `/32`. On the client, allowed IPs define which traffic goes into the tunnel: only internal networks or the whole internet.
 
-## Firewall для WireGuard
+## Firewall for WireGuard
 
-Input: разрешить сам WireGuard port с WAN:
+Input: allow the WireGuard port itself from WAN:
 
 ```routeros
 /ip firewall filter
 add chain=input action=accept in-interface-list=WAN protocol=udp dst-port=<udp-port> comment="input: allow WireGuard"
 ```
 
-Это правило должно стоять до drop WAN to router.
+This rule must be before the WAN-to-router drop.
 
-Forward: разрешить VPN только к нужным VLAN:
+Forward: allow VPN only to required VLANs:
 
 ```routeros
 /ip firewall filter
@@ -89,11 +89,11 @@ add chain=forward action=accept in-interface=wg-roadwarrior out-interface-list=L
 add chain=forward action=drop in-interface=wg-roadwarrior log=yes log-prefix="drop-vpn" comment="vpn: drop rest"
 ```
 
-Не давайте всем VPN peers полный доступ ко всем VLAN без причины.
+Do not give every VPN peer full access to every VLAN without a reason.
 
-## DNS для VPN
+## DNS for VPN
 
-Клиентам можно выдать DNS MikroTik или внутренний resolver. Тогда input firewall должен разрешить DNS с WireGuard interface:
+Clients can use MikroTik DNS or an internal resolver. Then input firewall must allow DNS from the WireGuard interface:
 
 ```routeros
 /ip firewall filter
@@ -101,22 +101,22 @@ add chain=input action=accept in-interface=wg-roadwarrior protocol=udp dst-port=
 add chain=input action=accept in-interface=wg-roadwarrior protocol=tcp dst-port=53 comment="vpn: allow DNS TCP"
 ```
 
-Если split DNS нужен для внутренних имен, документируйте это отдельно.
+If split DNS is needed for internal names, document it separately.
 
-## Site-to-site нюансы
+## Site-to-site nuances
 
-Для site-to-site allowed-address содержит remote subnet:
+For site-to-site, allowed-address contains the remote subnet:
 
 ```routeros
 /interface wireguard peers
 add interface=wg-site-office public-key="<remote-router-public-key>" allowed-address=<remote-subnet> endpoint-address=<remote-endpoint> endpoint-port=<remote-port> persistent-keepalive=25s
 ```
 
-Маршруты и firewall должны явно описывать, какие local VLAN доступны remote site. Конфликты подсетей между площадками нужно исключить заранее.
+Routes and firewall must explicitly describe which local VLANs are reachable from the remote site. Subnet conflicts between sites must be eliminated in advance.
 
-## Как проверить результат
+## How to verify the result
 
-На MikroTik:
+On MikroTik:
 
 ```routeros
 /interface wireguard print
@@ -125,35 +125,35 @@ add interface=wg-site-office public-key="<remote-router-public-key>" allowed-add
 /log print
 ```
 
-Проверки:
+Checks:
 
-- peer получает handshake;
-- клиент ping gateway VPN;
-- доступны только разрешенные VLAN;
-- management не открыт с WAN напрямую;
-- DNS работает, если должен;
-- отключенный peer теряет доступ.
+- peer gets a handshake;
+- the client can ping the VPN gateway;
+- only allowed VLANs are reachable;
+- management is not open directly from WAN;
+- DNS works if it should;
+- a disabled peer loses access.
 
-## Частые ошибки
+## Common mistakes
 
-Путать allowed-address на сервере и allowed IPs на клиенте.
+Confusing allowed-address on the server with allowed IPs on the client.
 
-Давать `0.0.0.0/0` там, где нужен split tunnel.
+Using `0.0.0.0/0` where split tunnel is needed.
 
-Разрешить VPN ко всем VLAN без политики.
+Allowing VPN to every VLAN without policy.
 
-Забыть firewall input для UDP WireGuard port.
+Forgetting firewall input for the UDP WireGuard port.
 
-Использовать VPN как замену нормальной management segmentation.
+Using VPN as a substitute for proper management segmentation.
 
 ## Security notes
 
-WireGuard прост, но ключи - это доступ. Для каждого устройства нужен отдельный peer, чтобы можно было отозвать конкретный доступ.
+WireGuard is simple, but keys are access. Use a separate peer for each device so a specific access can be revoked.
 
-VPN-клиенты должны быть частью firewall policy, а не исключением из нее.
+VPN clients must be part of the firewall policy, not an exception from it.
 
-## Мини-вывод
+## Short takeaway
 
-WireGuard закрывает задачу удаленного доступа без публикации management в интернет. Road-warrior и site-to-site требуют разных allowed-address, routing и firewall-правил.
+WireGuard solves remote access without exposing management to the internet. Road-warrior and site-to-site require different allowed-address, routing, and firewall rules.
 
-Следующая статья будет про DoH DNS и DNS policy: что может MikroTik DNS cache и где его ограничения.
+The next article is about DoH DNS and DNS policy: what MikroTik DNS cache can do and where its limits are.

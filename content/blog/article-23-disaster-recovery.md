@@ -1,104 +1,104 @@
 ---
-title: "Disaster recovery: восстановление сети после сбоя роутера или ошибки конфигурации"
+title: "Disaster recovery: restoring the network after router failure or configuration mistakes"
 date: 2026-04-02
-summary: "Disaster recovery для MikroTik-сети: lockout recovery, hardware replacement, runbook, documentation и restore checks."
+summary: "Disaster recovery for a MikroTik network: lockout recovery, hardware replacement, runbook, documentation, and restore checks."
 tags: ["mikrotik","routeros","disaster-recovery","backup"]
 topics: ["networking"]
 toc: true
 ---
 
-# Disaster recovery: восстановление сети после сбоя роутера или ошибки конфигурации
+# Disaster recovery: restoring the network after router failure or configuration mistakes
 
-Disaster recovery - это не героическое восстановление ночью, а заранее подготовленный план. Если роутер умер, конфигурация сломалась или VLAN/firewall отрезали доступ, вы должны знать следующий шаг.
+Disaster recovery is not heroic late-night restoration; it is a prepared plan. If the router dies, configuration breaks, or VLAN/firewall cuts off access, you should know the next step.
 
-DR-план особенно важен для сети, где MikroTik является core router/firewall.
+A DR plan is especially important for a network where MikroTik is the core router/firewall.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Backup automation уже создает артефакты. Теперь нужно понять, как ими пользоваться: что делать при lockout, failed upgrade, hardware failure, corrupted config или ошибочном firewall rule.
+Backup automation already creates artifacts. Now you need to understand how to use them: what to do during lockout, failed upgrade, hardware failure, corrupted config, or a bad firewall rule.
 
-Финальная статья будет security checklist перед признанием сети готовой.
+The final article will be a security checklist before considering the network ready.
 
-## Сценарии отказа
+## Failure scenarios
 
-| Сценарий | Пример |
+| Scenario | Example |
 | --- | --- |
-| Lockout | VLAN filtering/firewall отрезал management |
-| Failed upgrade | RouterOS обновился некорректно |
-| Hardware failure | Устройство не загружается |
-| Bad config | DHCP/DNS/firewall сломан |
-| WAN outage | Провайдер недоступен |
-| Lost VPN | Удаленный доступ пропал |
+| Lockout | VLAN filtering/firewall cut off management |
+| Failed upgrade | RouterOS upgraded incorrectly |
+| Hardware failure | Device does not boot |
+| Bad config | DHCP/DNS/firewall is broken |
+| WAN outage | Provider is unavailable |
+| Lost VPN | Remote access disappeared |
 
-Для каждого сценария нужен отдельный путь восстановления.
+Each scenario needs its own recovery path.
 
-## Перед применением
+## Before applying anything
 
-DR-план сам по себе не опасен, но тесты восстановления могут влиять на сеть. Перед тренировкой:
+A DR plan is not dangerous by itself, but recovery tests can affect the network. Before practice:
 
 ```routeros
 /system backup save name=before-dr-test
 /export file=before-dr-test
 ```
 
-Тестируйте в maintenance window или на CHR/запасном устройстве.
+Test in a maintenance window or on CHR/spare hardware.
 
 ## Lockout recovery
 
-Профилактика:
+Prevention:
 
-- Safe Mode перед risk changes;
-- локальный management port;
-- отдельная Management VLAN;
-- rollback timer через scheduler для опасных изменений;
-- свежий export.
+- Safe Mode before risky changes;
+- local management port;
+- separate Management VLAN;
+- rollback timer through scheduler for dangerous changes;
+- fresh export.
 
-Если доступ потерян:
+If access is lost:
 
-- попробовать локальный порт;
-- подключиться через MAC WinBox, если применимо и разрешено локально;
-- использовать console/serial, если модель поддерживает;
-- восстановиться из backup/export;
-- в крайнем случае reset и rebuild.
+- try a local port;
+- connect through MAC WinBox if applicable and allowed locally;
+- use console/serial if the model supports it;
+- restore from backup/export;
+- reset and rebuild as a last resort.
 
 ## Hardware replacement
 
-Для замены устройства нужны:
+For device replacement, you need:
 
-- модель или совместимая замена;
+- the same model or a compatible replacement;
 - RouterOS version;
 - export;
-- binary backup, если та же модель;
-- список интерфейсов и их ролей;
+- binary backup if it is the same model;
+- interface list and roles;
 - VLAN/port map;
 - ISP credentials;
 - WireGuard keys/peers;
 - DNS/monitoring/backup credentials.
 
-Export нельзя слепо применять на другой модели: имена интерфейсов и hardware-specific настройки могут отличаться.
+Do not blindly apply an export to another model: interface names and hardware-specific settings may differ.
 
 ## DR runbook
 
-Минимальный runbook:
+Minimal runbook:
 
 ```text
-1. Определить сценарий: lockout, hardware, WAN, config.
-2. Сохранить текущее состояние, если доступ есть.
-3. Проверить последний backup/export.
-4. Восстановить management access.
-5. Восстановить WAN.
-6. Восстановить VLAN gateways, DHCP/DNS.
-7. Восстановить firewall/NAT.
-8. Проверить VPN.
-9. Проверить monitoring/backups.
-10. Записать итог и причину.
+1. Identify scenario: lockout, hardware, WAN, config.
+2. Save current state if access exists.
+3. Check latest backup/export.
+4. Restore management access.
+5. Restore WAN.
+6. Restore VLAN gateways, DHCP/DNS.
+7. Restore firewall/NAT.
+8. Check VPN.
+9. Check monitoring/backups.
+10. Record result and cause.
 ```
 
-## Документация сети
+## Network documentation
 
-DR невозможен без документации:
+DR is impossible without documentation:
 
-- model и serial;
+- model and serial;
 - RouterOS version;
 - port map;
 - VLAN table;
@@ -109,39 +109,39 @@ DR невозможен без документации:
 - ISP details;
 - emergency contacts.
 
-Эта информация должна быть доступна вне роутера.
+This information must be available outside the router.
 
-## Как проверить DR-план
+## How to verify the DR plan
 
-Проверки:
+Checks:
 
-- найти последний export без доступа к роутеру;
-- прочитать VLAN/port map;
-- поднять CHR и применить часть export;
-- восстановить DHCP/DNS на тесте;
-- проверить, что backup не пустой;
-- пройти tabletop exercise: "роутер умер, что делаем?"
+- find the latest export without router access;
+- read the VLAN/port map;
+- start CHR and apply part of the export;
+- restore DHCP/DNS in a test;
+- verify the backup is not empty;
+- run a tabletop exercise: "the router is dead, what do we do?"
 
-## Частые ошибки
+## Common mistakes
 
-Иметь backup, но не знать пароль/место хранения.
+Having a backup but not knowing the password/storage location.
 
-Хранить документацию только на NAS за тем же роутером.
+Keeping documentation only on a NAS behind the same router.
 
-Не иметь ISP credentials.
+Not having ISP credentials.
 
-Слепо импортировать export на другую модель.
+Blindly importing an export onto another model.
 
-Не проверять DR до аварии.
+Not testing DR before an incident.
 
 ## Security notes
 
-DR-материалы содержат секреты и топологию. Доступ к ним должен быть ограничен, но не настолько, чтобы в аварии никто не мог восстановиться.
+DR materials contain secrets and topology. Access to them must be limited, but not so limited that nobody can recover the network during an incident.
 
-После восстановления проверяйте, что временные emergency-доступы закрыты.
+After recovery, check that temporary emergency access is closed.
 
-## Мини-вывод
+## Short takeaway
 
-Disaster recovery - это backup, документация, runbook и проверенный путь восстановления. Цель не в том, чтобы никогда не ошибаться, а в том, чтобы ошибка не превращалась в долгий outage.
+Disaster recovery is backup, documentation, runbook, and a tested recovery path. The goal is not to never make mistakes, but to prevent a mistake from becoming a long outage.
 
-Следующая статья завершит серию финальным security checklist.
+The next article completes the series with a final security checklist.

@@ -1,35 +1,35 @@
 ---
-title: "Firewall hardening на MikroTik: input, forward, WAN и management access"
+title: "Firewall hardening on MikroTik: input, forward, WAN, and management access"
 date: 2026-03-17
-summary: "Базовая hardening-модель firewall для MikroTik: input, forward, WAN drop, management access и правила между VLAN."
+summary: "A baseline firewall hardening model for MikroTik: input, forward, WAN drop, management access, and rules between VLANs."
 tags: ["mikrotik","routeros","firewall","security"]
 topics: ["networking"]
 toc: true
 ---
 
-# Firewall hardening на MikroTik: input, forward, WAN и management access
+# Firewall hardening on MikroTik: input, forward, WAN, and management access
 
-Firewall на MikroTik - это место, где архитектура становится политикой. VLAN уже разделили сеть, DHCP/DNS уже обслуживают клиентов, но без firewall разные сегменты могут получить слишком широкий доступ друг к другу.
+Firewall on MikroTik is where architecture becomes policy. VLANs have already split the network, DHCP/DNS already serve clients, but without firewall, different segments can get overly broad access to each other.
 
-Цель этой статьи - построить безопасную базу: защитить сам роутер в `input`, контролировать транзитный трафик в `forward`, закрыть WAN и оставить management только trusted-сетям.
+The goal of this article is to build a safe baseline: protect the router itself in `input`, control transit traffic in `forward`, close WAN, and leave management only to trusted networks.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-До этого мы создали VLAN и L3-сервисы. Теперь нужно определить, кто может обращаться к роутеру и кто может ходить между сетями.
+Before this, we created VLANs and L3 services. Now we define who can talk to the router and who can move between networks.
 
-Следующая статья будет про NAT, port forwarding и hairpin NAT. Эти темы нельзя делать до понимания базового firewall.
+The next article is about NAT, port forwarding, and hairpin NAT. Those topics should not be handled before the baseline firewall is understood.
 
-## Input и forward
+## Input and forward
 
-`input` - трафик к самому роутеру: WinBox, SSH, DNS cache, DHCP, ICMP, WireGuard endpoint.
+`input` is traffic to the router itself: WinBox, SSH, DNS cache, DHCP, ICMP, WireGuard endpoint.
 
-`forward` - трафик через роутер: LAN в интернет, Guest в интернет, LAN к Server, IoT к cloud.
+`forward` is traffic through the router: LAN to internet, Guest to internet, LAN to Server, IoT to cloud.
 
-Ошибка "я разрешил в forward, но SSH к роутеру не работает" обычно означает непонимание этой границы.
+The mistake "I allowed it in forward, but SSH to the router does not work" usually means this boundary was not understood.
 
-## Перед применением
+## Before applying anything
 
-Firewall легко может отрезать management. Перед изменениями:
+Firewall can easily cut off management. Before changes:
 
 ```routeros
 /system backup save name=before-firewall-hardening
@@ -37,7 +37,7 @@ Firewall легко может отрезать management. Перед изме�
 /system console safe-mode
 ```
 
-Работайте локально или через trusted management-сегмент. Проверьте interface lists:
+Work locally or through a trusted management segment. Check interface lists:
 
 ```routeros
 /interface list print
@@ -45,11 +45,11 @@ Firewall легко может отрезать management. Перед изме�
 /ip firewall filter print
 ```
 
-Не применяйте финальные drop-правила до allow-правил для текущего management path.
+Do not apply final drop rules before allow rules for the current management path.
 
-## Базовая input policy
+## Baseline input policy
 
-Пример адаптируемой структуры:
+Adaptable structure:
 
 ```routeros
 /ip firewall filter
@@ -65,9 +65,9 @@ add chain=input action=drop in-interface-list=WAN log=yes log-prefix="drop-input
 add chain=input action=drop log=yes log-prefix="drop-input" comment="input: drop rest"
 ```
 
-Это не универсальный copy-paste. Нужно адаптировать interface lists, WireGuard interface и DNS/DHCP allowance под вашу схему.
+This is not universal copy-paste. Adapt interface lists, WireGuard interface, and DNS/DHCP allowances to your design.
 
-## Базовая forward policy
+## Baseline forward policy
 
 ```routeros
 /ip firewall filter
@@ -82,35 +82,35 @@ add chain=forward action=drop in-interface-list=IOT out-interface-list=!WAN log=
 add chain=forward action=drop log=yes log-prefix="drop-forward" comment="forward: drop rest"
 ```
 
-Правило `LAN -> IOT` в примере слишком широкое для строгой сети. В production лучше разрешать конкретные сервисы: например, управление конкретной лампой, Home Assistant, printer или media device.
+The `LAN -> IOT` rule in this example is too broad for a strict network. In production, allow specific services instead: for example, control of a specific lamp, Home Assistant, a printer, or a media device.
 
-## Порядок правил
+## Rule order
 
-Порядок критичен. Сначала established/related, потом invalid drop, потом точечные allow, потом deny/drop. Если поставить финальный drop слишком рано, последующие allow не сработают.
+Order is critical. First established/related, then invalid drop, then specific allow rules, then deny/drop. If a final drop is placed too early, later allow rules will never match.
 
-Для port forwarding будущие allow по `connection-nat-state=dstnat` должны стоять до финального `drop` в forward.
+For future port forwarding, allow rules using `connection-nat-state=dstnat` must be placed before the final `drop` in forward.
 
-## ICMP и ICMPv6
+## ICMP and ICMPv6
 
-ICMP не нужно ломать blindly. Для IPv4 он полезен для диагностики. Для IPv6 ICMPv6 является частью нормальной работы протокола, и IPv6 firewall нужно проектировать отдельно, а не копировать IPv4 rules.
+Do not break ICMP blindly. For IPv4 it is useful for diagnostics. For IPv6, ICMPv6 is part of normal protocol operation, and the IPv6 firewall must be designed separately instead of copying IPv4 rules.
 
 ## Logging
 
-Логи drop-правил полезны, но могут заспамить роутер. Используйте понятные prefix и rate-limit там, где это возможно. Не логируйте каждый шумовой пакет с WAN без необходимости.
+Drop-rule logs are useful, but they can spam the router. Use clear prefixes and rate limits where possible. Do not log every noisy WAN packet unless you have a reason.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
-- с WAN недоступны WinBox/SSH/WebFig/DNS;
-- из Management VLAN доступен router management;
-- из Guest есть интернет, но нет доступа к LAN/MGMT;
-- из IoT нет инициирующего доступа к LAN/MGMT;
-- LAN получает нужный доступ к Server/IoT;
-- DNS и DHCP работают;
-- логи drop читаемые и не забивают устройство.
+- WinBox/SSH/WebFig/DNS are not reachable from WAN;
+- router management is reachable from the Management VLAN;
+- Guest has internet but no access to LAN/MGMT;
+- IoT cannot initiate access to LAN/MGMT;
+- LAN has the required access to Server/IoT;
+- DNS and DHCP work;
+- drop logs are readable and do not overwhelm the device.
 
-Команды:
+Commands:
 
 ```routeros
 /ip firewall filter print stats
@@ -118,26 +118,26 @@ ICMP не нужно ломать blindly. Для IPv4 он полезен дл�
 /tool torch interface=<interface-name>
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Перепутать `input` и `forward`.
+Confusing `input` and `forward`.
 
-Оставить management доступным с WAN.
+Leaving management reachable from WAN.
 
-Создать broad allow между всеми VLAN.
+Creating a broad allow between all VLANs.
 
-Сломать DHCP/DNS, потому что input к роутеру не разрешен.
+Breaking DHCP/DNS because input to the router is not allowed.
 
-Поставить drop раньше allow и потерять доступ.
+Putting drop before allow and losing access.
 
 ## Security notes
 
-Default-deny в конце цепочек - нормальная модель. Но она безопасна только если перед ней явно разрешены нужные сервисы.
+Default-deny at the end of chains is a normal model. It is safe only if the required services are explicitly allowed before it.
 
-Не публикуйте management в интернет. Для удаленного доступа используйте WireGuard с ограниченными правилами.
+Do not expose management to the internet. Use WireGuard with limited rules for remote access.
 
-## Мини-вывод
+## Short takeaway
 
-Firewall hardening разделяет две задачи: input защищает роутер, forward управляет транзитом. Сначала разрешаем необходимое, затем запрещаем остальное. VLAN без такой политики не дает полноценной безопасности.
+Firewall hardening separates two tasks: input protects the router, forward controls transit. First allow what is needed, then deny the rest. VLANs without this policy do not provide complete security.
 
-Следующая статья будет про NAT, port forwarding и hairpin NAT: как открыть сервисы минимально безопасно.
+The next article is about NAT, port forwarding, and hairpin NAT: how to expose services with minimal risk.
