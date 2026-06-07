@@ -1,6 +1,6 @@
 {{ define "main" }}
 {{- $hasToc := and .Params.toc (gt (len .TableOfContents) 32) -}}
-<article class="wrap">
+<article class="article-wrap">
   <header class="article-head">
     <div class="article-head__meta">
       <span>{{ .Date.Format "2006-01-02" }}</span>
@@ -12,7 +12,7 @@
     {{ with .Description }}<p class="article-head__lede">{{ . }}</p>{{ end }}
   </header>
 
-  <div class="{{ if $hasToc }}single-with-toc{{ end }}">
+  <div class="single-body{{ if $hasToc }} single-body--toc{{ end }}">
     <div class="prose">{{ .Content }}</div>
     {{ if $hasToc }}{{ partial "toc.html" . }}{{ end }}
   </div>
