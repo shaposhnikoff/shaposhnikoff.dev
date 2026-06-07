@@ -1,50 +1,50 @@
 ---
-title: "MikroTik как core router: роли, границы ответственности и базовая логика сети"
+title: "MikroTik as the core router: roles, responsibility boundaries, and basic network logic"
 date: 2026-03-13
-summary: "Как использовать MikroTik как core router и security boundary между WAN, VLAN, VPN и внутренними сегментами."
+summary: "How to use MikroTik as the core router and security boundary between WAN, VLANs, VPN, and internal segments."
 tags: ["mikrotik","routeros","routing","firewall"]
 topics: ["networking"]
 toc: true
 ---
 
-# MikroTik как core router: роли, границы ответственности и базовая логика сети
+# MikroTik as the core router: roles, responsibility boundaries, and basic network logic
 
-Core router - это точка, где сеть принимает решения. Через него проходит трафик между WAN, LAN, VLAN, VPN и серверными сегментами. Он не просто "раздает интернет", а задает правила: кто куда маршрутизируется, кто кому доступен, что логируется и где применяется firewall.
+The core router is where the network makes decisions. Traffic between WAN, LAN, VLANs, VPN, and server segments passes through it. It does not merely "share the internet"; it defines rules: who routes where, who can reach whom, what is logged, and where the firewall is applied.
 
-В MikroTik RouterOS 7 эту роль можно построить аккуратно, если не смешивать routing, switching и Wi-Fi в одну неразборчивую конфигурацию.
+In MikroTik RouterOS 7, this role can be built cleanly if you do not mix routing, switching, and Wi-Fi into an unreadable configuration.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-После baseline устройство уже безопаснее и понятнее. Теперь мы определяем его роль: MikroTik становится core router/firewall, а не случайным набором bridge, DHCP и NAT.
+After the baseline, the device is safer and easier to understand. Now we define its role: MikroTik becomes the core router/firewall, not a random collection of bridges, DHCP, and NAT.
 
-Следующие статьи будут строить VLAN-дизайн, bridge VLAN filtering, DHCP/DNS и firewall. Поэтому сейчас важно зафиксировать модель: какие интерфейсы относятся к WAN, какие к внутренним сегментам, где L2 заканчивается и где начинается L3.
+The next articles will build VLAN design, bridge VLAN filtering, DHCP/DNS, and firewall. That makes it important to lock in the model now: which interfaces are WAN, which belong to internal segments, where L2 ends, and where L3 begins.
 
-## Роли core router
+## Core router roles
 
-Core router обычно выполняет:
+The core router usually provides:
 
 - WAN termination;
-- default route в интернет;
+- default route to the internet;
 - inter-VLAN routing;
-- firewall для input и forward;
-- NAT для IPv4 internet access;
-- DHCP server для VLAN;
-- DNS cache или DNS forwarding;
+- firewall for input and forward;
+- NAT for IPv4 internet access;
+- DHCP server for VLANs;
+- DNS cache or DNS forwarding;
 - WireGuard endpoint;
 - monitoring/logging target;
 - backup automation.
 
-Не все функции должны быть включены сразу, но все они должны иметь понятное место.
+Not every function must be enabled immediately, but each one must have a clear place.
 
 ## Routing vs switching
 
-Switching работает на L2: кадры, MAC addresses, VLAN tags, trunk/access ports. Routing работает на L3: IP-сети, gateway, маршруты, firewall между подсетями.
+Switching works at L2: frames, MAC addresses, VLAN tags, trunk/access ports. Routing works at L3: IP networks, gateway, routes, firewall between subnets.
 
-Типичная ошибка - ожидать, что VLAN сама по себе обеспечивает security. VLAN разделяет broadcast domains, но если на router есть интерфейсы для этих VLAN и firewall разрешает forward, трафик может ходить между сегментами. Без firewall VLAN - это сегментация адресного пространства, но не полноценная политика доступа.
+A common mistake is expecting VLANs by themselves to provide security. VLANs separate broadcast domains, but if the router has interfaces for those VLANs and the firewall allows forward traffic, packets can move between segments. Without firewall, VLANs are address-space segmentation, not a complete access policy.
 
-## Базовая L3-модель
+## Basic L3 model
 
-На core router для каждой внутренней VLAN обычно есть L3 interface:
+On the core router, each internal VLAN usually has an L3 interface:
 
 | VLAN | Interface | Gateway |
 | --- | --- | --- |
@@ -54,11 +54,11 @@ Switching работает на L2: кадры, MAC addresses, VLAN tags, trunk/
 | IoT | `vlan40-iot` | `10.10.40.1/24` |
 | Server/NAS | `vlan50-server` | `10.10.50.1/24` |
 
-Каждый клиент получает gateway в своей VLAN. Между VLAN трафик идет через MikroTik, где его можно фильтровать.
+Each client receives a gateway in its own VLAN. Traffic between VLANs goes through MikroTik, where it can be filtered.
 
-## Перед применением
+## Before applying anything
 
-Любые изменения routing, bridge и VLAN могут привести к потере доступа. Перед практической настройкой:
+Any routing, bridge, or VLAN changes can cause loss of access. Before practical configuration:
 
 ```routeros
 /system backup save name=before-core-router
@@ -66,11 +66,11 @@ Switching работает на L2: кадры, MAC addresses, VLAN tags, trunk/
 /system console safe-mode
 ```
 
-Работайте локально или через подтвержденный management path. Не включайте VLAN filtering и не переносите management удаленно без rollback-плана.
+Work locally or through a confirmed management path. Do not enable VLAN filtering or move management remotely without a rollback plan.
 
-## Базовые проверки состояния
+## Basic state checks
 
-Перед построением core router проверьте:
+Before building the core router role, check:
 
 ```routeros
 /interface print
@@ -82,11 +82,11 @@ Switching работает на L2: кадры, MAC addresses, VLAN tags, trunk/
 /ip firewall nat print
 ```
 
-Так вы увидите текущие интерфейсы, списки, адреса, маршруты и правила. Нельзя строить новую политику поверх конфигурации, которую вы не прочитали.
+This shows current interfaces, lists, addresses, routes, and rules. Do not build a new policy on top of a configuration you have not read.
 
 ## Interface lists
 
-Interface lists делают firewall и NAT читаемыми:
+Interface lists make firewall and NAT readable:
 
 ```routeros
 /interface list
@@ -97,7 +97,7 @@ add name=GUEST
 add name=IOT
 ```
 
-Members добавляются после создания реальных интерфейсов:
+Members are added after real interfaces exist:
 
 ```routeros
 /interface list member
@@ -108,55 +108,55 @@ add list=GUEST interface=<guest-vlan-interface>
 add list=IOT interface=<iot-vlan-interface>
 ```
 
-Так firewall может говорить "разрешить management из MGMT", а не зависеть от случайного имени порта.
+That lets the firewall say "allow management from MGMT" instead of depending on an arbitrary port name.
 
-## Default route и WAN
+## Default route and WAN
 
-WAN может быть DHCP, static IP, PPPoE или LTE. В любом случае core router должен иметь понятный default route:
+WAN can be DHCP, static IP, PPPoE, or LTE. In every case, the core router must have a clear default route:
 
 ```routeros
 /ip route print
 ```
 
-Если default route приходит автоматически от провайдера, это нормально, но его нужно понимать. Для dual WAN и policy routing логика усложняется, и мы разберем ее отдельно.
+If the default route is received automatically from the provider, that is fine, but you still need to understand it. Dual WAN and policy routing make the logic more complex, and we will cover them separately.
 
-## NAT не равен firewall
+## NAT is not firewall
 
-Для IPv4 выхода в интернет обычно нужен masquerade:
+IPv4 internet access usually needs masquerade:
 
 ```routeros
 /ip firewall nat
 add chain=srcnat out-interface-list=WAN action=masquerade comment="masquerade LAN to Internet"
 ```
 
-Это правило не защищает сам роутер и не управляет доступом между VLAN. NAT только меняет source address для выхода наружу. Security policy живет в firewall filter.
+This rule does not protect the router itself and does not control access between VLANs. NAT only changes the source address for outbound access. The security policy lives in firewall filter.
 
 ## Management boundary
 
-Management-доступ к роутеру, switch и AP должен идти только из trusted-сегмента или через WireGuard.
+Management access to the router, switch, and APs should come only from a trusted segment or through WireGuard.
 
-Практическая логика:
+Practical logic:
 
-- Management VLAN доступна администраторам;
-- LAN может иметь ограниченный доступ к отдельным сервисам;
-- Guest не имеет доступа к management;
-- IoT не имеет доступа к management;
-- WAN не имеет доступа к management вообще.
+- Management VLAN is available to administrators;
+- LAN may have limited access to selected services;
+- Guest has no access to management;
+- IoT has no access to management;
+- WAN has no access to management at all.
 
-Этот boundary важнее удобства. Если management открыт отовсюду, сегментация теряет смысл.
+This boundary matters more than convenience. If management is open from everywhere, segmentation loses its meaning.
 
-## Как проверить результат
+## How to verify the result
 
-После проектирования core-router роли должно быть понятно:
+After designing the core-router role, it should be clear:
 
-- какой интерфейс является WAN;
-- где trunk к switch/AP;
-- какие VLAN будут иметь L3 gateway на MikroTik;
-- какие interface lists нужны firewall;
-- где находится management;
-- какие функции делает MikroTik, а какие остаются switch/AP/server.
+- which interface is WAN;
+- where the trunk to switch/AP is;
+- which VLANs will have an L3 gateway on MikroTik;
+- which interface lists are needed for firewall;
+- where management lives;
+- which functions MikroTik provides and which remain on switch/AP/server.
 
-На работающем устройстве проверяются:
+On a running device, verify:
 
 ```routeros
 /ip address print
@@ -166,24 +166,24 @@ Management-доступ к роутеру, switch и AP должен идти т
 /ping google.com
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Считать bridge firewall-границей. Bridge - это L2, security между VLAN делается на L3 firewall.
+Treating a bridge as a firewall boundary. A bridge is L2; security between VLANs is done with the L3 firewall.
 
-Давать всем VLAN полный доступ друг к другу "пока настраиваем", а потом забывать убрать.
+Giving every VLAN full access to every other VLAN "while configuring" and then forgetting to remove it.
 
-Смешивать WAN, LAN и management в одном bridge без ясной причины.
+Mixing WAN, LAN, and management in one bridge without a clear reason.
 
-Ставить NAT-правила как замену forward-фильтрации.
+Using NAT rules as a substitute for forward filtering.
 
 ## Security notes
 
-Core router должен быть самым понятным устройством в сети. Если на нем хаотичные bridge, NAT, DHCP и firewall rules, troubleshooting становится угадыванием.
+The core router should be the most understandable device in the network. If it contains chaotic bridges, NAT, DHCP, and firewall rules, troubleshooting becomes guesswork.
 
-Лучше меньше правил, но с четкими interface lists и address-lists, чем длинная конфигурация с широкими `accept any`.
+Fewer rules with clear interface lists and address-lists are better than a long configuration with broad `accept any`.
 
-## Мини-вывод
+## Short takeaway
 
-MikroTik как core router - это L3 и security boundary сети. Он маршрутизирует между VLAN, защищает сам себя через input, фильтрует транзит через forward и не должен смешивать роли без необходимости.
+MikroTik as the core router is the L3 and security boundary of the network. It routes between VLANs, protects itself through input, filters transit through forward, and should not mix roles unnecessarily.
 
-Следующая статья будет про план адресации и VLAN-дизайн: какие сегменты выбрать, какие подсети назначить и как заранее описать правила доступа.
+The next article is about addressing and VLAN design: which segments to choose, which subnets to assign, and how to describe access rules in advance.

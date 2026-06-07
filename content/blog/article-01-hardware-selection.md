@@ -1,40 +1,40 @@
 ---
-title: "Как выбрать железо MikroTik под нормальную сеть: router, switch, Wi-Fi и запас на рост"
+title: "How to choose MikroTik hardware for a proper network: router, switch, Wi-Fi, and room to grow"
 date: 2026-03-11
-summary: "Практический выбор MikroTik router, switch и Wi-Fi устройств под VLAN, firewall, WireGuard и рост сети."
+summary: "Practical MikroTik router, switch, and Wi-Fi device selection for VLANs, firewall, WireGuard, and network growth."
 tags: ["mikrotik","routeros","hardware","network-design"]
 topics: ["networking"]
 toc: true
 ---
 
-# Как выбрать железо MikroTik под нормальную сеть: router, switch, Wi-Fi и запас на рост
+# How to choose MikroTik hardware for a proper network: router, switch, Wi-Fi, and room to grow
 
-Правильная сеть начинается не с покупки самого дорогого роутера, а с понимания ролей. MikroTik может быть router/firewall, switch, Wi-Fi controller, CAP, VPN gateway, DNS cache и monitoring target. Но одно устройство не всегда должно делать все сразу.
+A proper network does not start with buying the most expensive router. It starts with understanding roles. MikroTik can be a router/firewall, switch, Wi-Fi controller, CAP, VPN gateway, DNS cache, and monitoring target. But one device should not always do everything at once.
 
-Цель этой статьи - выбрать железо под архитектуру из первой статьи: core router, managed switch, точки доступа и запас по производительности.
+The goal of this article is to choose hardware for the architecture from the first article: core router, managed switch, access points, and enough performance headroom.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Мы уже определили целевую схему: MikroTik как core router/firewall, VLAN segmentation, managed switching, Wi-Fi через CAP/AP и отдельные SSID под разные VLAN.
+We already defined the target design: MikroTik as the core router/firewall, VLAN segmentation, managed switching, Wi-Fi through CAP/AP, and separate SSIDs for different VLANs.
 
-Теперь нужно решить, какие устройства способны это потянуть. Ошибка на этом этапе приводит к странным компромиссам: VLAN есть, но не хватает портов; WireGuard нужен, но CPU слабый; Wi-Fi встроенный, но покрытие плохое; switch умеет VLAN, но администрирование неудобное.
+Now we need to decide which devices can handle that. A mistake at this stage leads to strange compromises: VLANs exist, but there are not enough ports; WireGuard is needed, but the CPU is weak; Wi-Fi is built in, but coverage is poor; the switch supports VLANs, but administration is awkward.
 
-## Роли устройств
+## Device roles
 
-В нормальной схеме роли разделяются так:
+In a normal design, roles are split like this:
 
-| Роль | Что делает | На что смотреть |
+| Role | What it does | What to check |
 | --- | --- | --- |
-| Core router | Routing, firewall, NAT, WireGuard, DHCP/DNS | CPU, RAM, RouterOS 7, throughput с firewall |
-| Switch | Trunk/access VLAN, L2 fan-out | VLAN support, port count, PoE, uplink speed |
-| CAP/AP | Wi-Fi access layer | WiFi package, диапазоны, VLAN per SSID, PoE |
-| Optional server | DNS filtering, monitoring, backups | Не обязательно MikroTik |
+| Core router | Routing, firewall, NAT, WireGuard, DHCP/DNS | CPU, RAM, RouterOS 7, throughput with firewall |
+| Switch | Trunk/access VLANs, L2 fan-out | VLAN support, port count, PoE, uplink speed |
+| CAP/AP | Wi-Fi access layer | WiFi package, bands, VLAN per SSID, PoE |
+| Optional server | DNS filtering, monitoring, backups | Not necessarily MikroTik |
 
-Можно начать с одного устройства, но архитектура должна позволять рост.
+You can start with one device, but the architecture should allow growth.
 
-## Router: главный критерий
+## Router: the main criterion
 
-Для core router важны не только "гигабитные порты". Нужно понимать, какой трафик пройдет через CPU:
+For a core router, "gigabit ports" are not enough. You need to understand which traffic will go through the CPU:
 
 - firewall;
 - NAT;
@@ -45,108 +45,108 @@ toc: true
 - IPv6 firewall;
 - dual WAN checks.
 
-FastPath/FastTrack может ускорять часть трафика, но нельзя строить выбор железа только на рекламном "up to". В production-like сети всегда есть правила, исключения, VPN и трафик между VLAN.
+FastPath/FastTrack can accelerate some traffic, but hardware choice should not be based only on marketing "up to" numbers. A production-like network always has rules, exceptions, VPN, and traffic between VLANs.
 
-Практический ориентир:
+Practical guidance:
 
-| Сценарий | Что нужно |
+| Scenario | What you need |
 | --- | --- |
-| Небольшая квартира, 1 WAN, базовый firewall | hAP ax2/ax3 или аналогичный актуальный RouterBOARD |
-| Дом/homelab, VLAN, WireGuard, NAS | Более сильный ARM/ARM64 router, запас по CPU |
-| Малый офис, много VLAN/VPN/правил | Отдельный router уровня RB5009/CCR по нагрузке |
-| 10G uplink или тяжелый routing | Проверять реальные тесты и архитектуру CPU/switch chip |
+| Small apartment, 1 WAN, basic firewall | hAP ax2/ax3 or a similar current RouterBOARD |
+| House/homelab, VLANs, WireGuard, NAS | Stronger ARM/ARM64 router with CPU headroom |
+| Small office, many VLANs/VPN/rules | Separate router in the RB5009/CCR class, depending on load |
+| 10G uplink or heavy routing | Check real tests and CPU/switch-chip architecture |
 
-Название модели само по себе ничего не гарантирует. Нужно смотреть RouterOS 7 support, CPU, RAM, порты, PoE, SFP/SFP+, hardware offload и реальные ограничения.
+The model name alone guarantees nothing. Check RouterOS 7 support, CPU, RAM, ports, PoE, SFP/SFP+, hardware offload, and real limitations.
 
-## Switch: VLAN без сюрпризов
+## Switch: VLANs without surprises
 
-Switch нужен, когда портов на роутере мало или когда сеть физически расходится по комнатам, стойке, AP и серверам.
+A switch is needed when the router has too few ports or when the network physically spreads across rooms, a rack, APs, and servers.
 
-Критично:
+Critical points:
 
-- поддержка tagged/untagged VLAN;
+- tagged/untagged VLAN support;
 - trunk/access ports;
-- понятная работа с PVID;
-- достаточное количество портов;
-- PoE для CAP/AP и камер, если нужно;
-- uplink 1G/2.5G/10G по реальной потребности;
-- понятная модель управления.
+- predictable PVID behavior;
+- enough ports;
+- PoE for CAP/AP and cameras, if needed;
+- 1G/2.5G/10G uplink according to real need;
+- a management model you can operate.
 
-CRS может быть хорошим switch, но не каждый CRS нужно использовать как тяжелый router. У MikroTik разные устройства оптимизированы под разные роли.
+A CRS can be a good switch, but not every CRS should be used as a heavy router. MikroTik devices are optimized for different roles.
 
-## Wi-Fi: не путать router и access layer
+## Wi-Fi: do not confuse router and access layer
 
-Встроенный Wi-Fi в роутере удобен для малой сети, но плохо масштабируется. Если покрытие важно, лучше использовать отдельные CAP/AP:
+Built-in Wi-Fi in a router is convenient for a small network, but scales poorly. If coverage matters, it is better to use separate CAP/AP devices:
 
-- один SSID для LAN;
-- отдельный SSID для Guest;
-- отдельный SSID для IoT;
+- one SSID for LAN;
+- a separate SSID for Guest;
+- a separate SSID for IoT;
 - VLAN per SSID;
-- питание по PoE;
-- централизованная настройка через CAPsMAN там, где это оправдано.
+- PoE power;
+- centralized configuration through CAPsMAN where it makes sense.
 
-В RouterOS 7 важно учитывать различия legacy wireless и новых WiFi-пакетов. Конкретные команды и возможности зависят от модели и установленного package, поэтому Wi-Fi-конфигурацию нужно проверять на конкретном устройстве.
+In RouterOS 7, account for the differences between legacy wireless and the newer WiFi packages. Commands and capabilities depend on the model and installed package, so Wi-Fi configuration must be checked on the actual device.
 
-## Практическая матрица выбора
+## Practical selection matrix
 
-Перед покупкой заполните таблицу:
+Before buying, fill in this table:
 
-| Вопрос | Пример ответа |
+| Question | Example answer |
 | --- | --- |
-| Сколько WAN? | 1 основной, 1 резервный |
-| Какая скорость WAN? | 1 Gbit/s |
-| Нужен ли inter-VLAN routing? | Да, LAN -> Server, LAN -> IoT частично |
-| Нужен ли WireGuard? | Да, 3 road-warrior peer |
-| Нужен ли QoS? | Да, если uplink перегружается |
-| Сколько wired clients? | 12 |
-| Сколько AP? | 2 |
-| Нужен ли PoE? | Да, AP и камеры |
-| Нужен ли 10G? | Только NAS uplink, если бюджет позволяет |
+| How many WAN links? | 1 primary, 1 backup |
+| What WAN speed? | 1 Gbit/s |
+| Is inter-VLAN routing needed? | Yes, LAN -> Server, LAN -> IoT partially |
+| Is WireGuard needed? | Yes, 3 road-warrior peers |
+| Is QoS needed? | Yes, if the uplink becomes congested |
+| How many wired clients? | 12 |
+| How many APs? | 2 |
+| Is PoE needed? | Yes, APs and cameras |
+| Is 10G needed? | Only NAS uplink, if the budget allows |
 
-После этого выбирайте не "самый популярный MikroTik", а набор ролей: router отдельно, switch отдельно, AP отдельно.
+After that, choose a set of roles, not "the most popular MikroTik": router separately, switch separately, AP separately.
 
-## Перед применением
+## Before applying anything
 
-Выбор железа не меняет конфигурацию, но перед переносом сети на новое устройство нужно подготовить:
+Choosing hardware does not change the configuration, but before migrating the network to a new device, prepare:
 
 ```routeros
 /system backup save name=before-migration
 /export file=before-migration
 ```
 
-Binary backup подходит для восстановления на том же устройстве. Для переноса логики на другую модель полезнее `/export`, потому что имена интерфейсов, switch chip и Wi-Fi package могут отличаться.
+Binary backup is suitable for restoring on the same device. For moving logic to another model, `/export` is more useful because interface names, switch chip, and Wi-Fi package can differ.
 
-## Как проверить, что выбор адекватный
+## How to check that the choice is adequate
 
-Проверка до покупки:
+Pre-purchase checks:
 
-- устройство поддерживает RouterOS 7;
-- портов хватает с запасом;
-- WAN/LAN uplink не становится узким местом;
-- CPU подходит под WireGuard/firewall/QoS;
-- switch умеет нужную VLAN-схему;
-- AP поддерживают нужный Wi-Fi package и VLAN per SSID;
-- PoE budget достаточен для всех powered devices;
-- есть план роста хотя бы на 20-30%.
+- the device supports RouterOS 7;
+- there are enough ports with margin;
+- WAN/LAN uplink does not become the bottleneck;
+- CPU fits WireGuard/firewall/QoS needs;
+- the switch supports the required VLAN design;
+- APs support the required Wi-Fi package and VLAN per SSID;
+- PoE budget is enough for all powered devices;
+- there is at least 20-30% growth margin.
 
-## Частые ошибки
+## Common mistakes
 
-Покупать роутер только по числу портов. Порты не говорят, сколько firewall/VPN/QoS он выдержит.
+Buying a router only by port count. Ports do not tell you how much firewall/VPN/QoS load it can handle.
 
-Использовать CRS как универсальный router без оценки CPU. CRS часто хорош как switch, но routing с firewall может быть не его сильной стороной.
+Using a CRS as a universal router without evaluating CPU. A CRS is often good as a switch, but routing with firewall may not be its strength.
 
-Оставлять Wi-Fi на одном устройстве в углу квартиры, а потом лечить покрытие мощностью передатчика.
+Leaving Wi-Fi on one device in the corner of the apartment and then trying to fix coverage by raising transmit power.
 
-Не учитывать PoE. В итоге точки доступа и камеры получают отдельные блоки питания, стойка становится сложнее, а отказоустойчивость хуже.
+Ignoring PoE. Access points and cameras then get separate power adapters, the rack becomes messier, and resilience gets worse.
 
 ## Security notes
 
-Железо влияет на безопасность косвенно. Если router не тянет firewall или WireGuard, возникает соблазн отключить проверки, открыть management наружу или отказаться от сегментации. Это плохой компромисс.
+Hardware affects security indirectly. If the router cannot handle firewall or WireGuard, there is a temptation to disable checks, expose management, or give up segmentation. That is a bad compromise.
 
-Запас по производительности нужен не для красоты, а чтобы security policy оставалась включенной при реальной нагрузке.
+Performance headroom is needed not for appearance, but so the security policy stays enabled under real load.
 
-## Мини-вывод
+## Short takeaway
 
-Выбирайте MikroTik по ролям: router маршрутизирует и фильтрует, switch доставляет VLAN, CAP/AP обслуживают Wi-Fi. Не смешивайте все задачи без необходимости и не рассчитывайте на "магические" throughput-цифры без firewall/VPN/QoS.
+Choose MikroTik by roles: the router routes and filters, the switch delivers VLANs, and CAP/AP devices serve Wi-Fi. Do not mix every task without need, and do not rely on "magic" throughput numbers without firewall/VPN/QoS.
 
-Следующая статья будет про первичную настройку RouterOS 7: как безопасно стартовать, убрать лишнюю поверхность атаки и подготовить устройство к нормальной конфигурации.
+The next article is about the initial RouterOS 7 setup: how to start safely, reduce attack surface, and prepare the device for a normal configuration.

@@ -1,35 +1,35 @@
 ---
-title: "Что мы строим: целевая архитектура сети на MikroTik RouterOS 7"
+title: "What we are building: the target network architecture on MikroTik RouterOS 7"
 date: 2026-03-10
-summary: "Целевая архитектура управляемой сети на MikroTik RouterOS 7 с VLAN, Wi-Fi access layer, firewall и VPN."
+summary: "Target architecture for a managed MikroTik RouterOS 7 network with VLANs, a Wi-Fi access layer, firewall, and VPN."
 tags: ["mikrotik","routeros","vlan","network-architecture"]
 topics: ["networking"]
 toc: true
 ---
 
-# Что мы строим: целевая архитектура сети на MikroTik RouterOS 7
+# What we are building: the target network architecture on MikroTik RouterOS 7
 
-Домашняя или офисная сеть часто начинается с простой цели: чтобы интернет работал. Но для нормальной эксплуатации этого мало. Если в одной сети живут рабочие ноутбуки, телефоны, камеры, IoT, NAS, гостевые устройства и VPN-клиенты, то "один роутер, один Wi-Fi, один NAT" быстро превращается в неуправляемую зону риска.
+A home or office network often starts with a simple goal: make the internet work. That is not enough for normal operations. If work laptops, phones, cameras, IoT devices, a NAS, guest devices, and VPN clients all live in one network, "one router, one Wi-Fi, one NAT" quickly turns into an unmanaged risk zone.
 
-В этой серии мы строим сеть на MikroTik RouterOS 7 как инженерную систему: с понятной архитектурой, сегментацией, ограничениями доступа, наблюдаемостью, резервными копиями и планом восстановления.
+In this series we build a MikroTik RouterOS 7 network as an engineered system: clear architecture, segmentation, access restrictions, observability, backups, and a recovery plan.
 
-## Где эта статья в архитектуре
+## Where this article fits in the architecture
 
-Это нулевая статья серии. Здесь мы не пишем большой конфиг и не включаем опасные настройки. Задача другая: описать, какую сеть мы строим, какие роли у устройств, какие VLAN нужны, какие потоки доступа разрешены и где проходят границы ответственности.
+This is article zero in the series. We are not writing a large configuration or enabling dangerous settings here. The goal is different: describe what network we are building, what roles the devices have, which VLANs are needed, which access flows are allowed, and where the responsibility boundaries are.
 
-Дальше каждая статья будет раскрывать отдельный слой: железо, базовая настройка RouterOS, VLAN, DHCP/DNS, firewall, NAT, Wi-Fi, IPv6, WireGuard, DNS policy, QoS, failover, logging, monitoring, backups и disaster recovery.
+Each following article covers one layer: hardware, RouterOS baseline setup, VLANs, DHCP/DNS, firewall, NAT, Wi-Fi, IPv6, WireGuard, DNS policy, QoS, failover, logging, monitoring, backups, and disaster recovery.
 
-## Основная идея
+## Core idea
 
-MikroTik в этой схеме не "Wi-Fi коробка у провайдера", а core router и firewall. Он принимает WAN от провайдера, маршрутизирует между сегментами, применяет security policy, обслуживает DHCP/DNS там, где это уместно, держит WireGuard и дает точку контроля для мониторинга.
+In this design, MikroTik is not "the ISP Wi-Fi box". It is the core router and firewall. It receives WAN from the provider, routes between segments, applies the security policy, serves DHCP/DNS where appropriate, terminates WireGuard, and provides a control point for monitoring.
 
-Wi-Fi лучше рассматривать как access layer. Точки доступа или CAP работают не как отдельные домашние роутеры с собственным NAT, а как управляемые устройства, которые подключают клиентов к нужным VLAN. Один SSID может вести в LAN, другой в Guest, третий в IoT.
+Wi-Fi is better treated as the access layer. Access points or CAPs do not work as separate home routers with their own NAT. They are managed devices that attach clients to the right VLANs. One SSID can map to LAN, another to Guest, and a third to IoT.
 
-Коммутатор, если он есть, отвечает за L2-доставку VLAN до портов, серверов и точек доступа. Он не должен принимать security-решения, которые лучше держать на роутере/firewall.
+The switch, if present, is responsible for L2 delivery of VLANs to ports, servers, and access points. It should not make security decisions that belong on the router/firewall.
 
-## Целевая топология
+## Target topology
 
-Базовая схема выглядит так:
+The base design looks like this:
 
 ```text
 Internet / ISP
@@ -48,58 +48,58 @@ NAS     PC      CAP/AP
               SSID per VLAN
 ```
 
-Если сеть маленькая, managed switch может быть встроенным в сам MikroTik. Если сеть растет, отдельный CRS/CSS или другой managed switch делает схему проще и аккуратнее.
+For a small network, the managed switch can be built into the MikroTik itself. As the network grows, a separate CRS/CSS or another managed switch makes the design simpler and cleaner.
 
-## Сегменты сети
+## Network segments
 
-Стартовый набор VLAN:
+A starting VLAN set:
 
-| VLAN ID | Назначение | Пример подсети | Gateway | DHCP | Доступ |
+| VLAN ID | Purpose | Example subnet | Gateway | DHCP | Access |
 | --- | --- | --- | --- | --- | --- |
-| 10 | Management | `10.10.10.0/24` | `10.10.10.1` | Да/ограниченно | Администрирование роутера, switch, AP |
-| 20 | LAN | `10.10.20.0/24` | `10.10.20.1` | Да | Рабочие станции, телефоны, trusted clients |
-| 30 | Guest | `10.10.30.0/24` | `10.10.30.1` | Да | Только интернет и локальные DHCP/DNS |
-| 40 | IoT | `10.10.40.0/24` | `10.10.40.1` | Да | Интернет и строго нужные сервисы |
-| 50 | Server/NAS | `10.10.50.0/24` | `10.10.50.1` | По ситуации | NAS, homelab, self-hosted сервисы |
-| 90 | VPN | `10.10.90.0/24` | WireGuard | Нет или peer-based | Ограниченный доступ по правилам |
+| 10 | Management | `10.10.10.0/24` | `10.10.10.1` | Yes/limited | Router, switch, and AP administration |
+| 20 | LAN | `10.10.20.0/24` | `10.10.20.1` | Yes | Workstations, phones, trusted clients |
+| 30 | Guest | `10.10.30.0/24` | `10.10.30.1` | Yes | Internet and local DHCP/DNS only |
+| 40 | IoT | `10.10.40.0/24` | `10.10.40.1` | Yes | Internet and strictly required services |
+| 50 | Server/NAS | `10.10.50.0/24` | `10.10.50.1` | Depends | NAS, homelab, self-hosted services |
+| 90 | VPN | `10.10.90.0/24` | WireGuard | No or peer-based | Limited access by policy |
 
-Это пример, а не универсальная схема. VLAN ID, подсети и имена нужно адаптировать под конкретную сеть. Важно не число VLAN, а то, что каждый сегмент имеет понятную роль и политику доступа.
+This is an example, not a universal design. VLAN IDs, subnets, and names must be adapted to the specific network. The important part is not the number of VLANs, but that every segment has a clear role and access policy.
 
-## SSID и VLAN
+## SSID and VLAN
 
-Wi-Fi не должен быть одной общей сеткой для всех устройств.
+Wi-Fi should not be one shared network for every device.
 
-| SSID | VLAN | Назначение |
+| SSID | VLAN | Purpose |
 | --- | --- | --- |
-| `Home-Main` | 20 | Основные доверенные устройства |
-| `Home-Guest` | 30 | Гости, только интернет |
-| `Home-IoT` | 40 | Умные устройства, камеры, бытовая техника |
+| `Home-Main` | 20 | Primary trusted devices |
+| `Home-Guest` | 30 | Guests, internet only |
+| `Home-IoT` | 40 | Smart devices, cameras, appliances |
 
-Для CAPsMAN или WiFi package в RouterOS 7 это означает VLAN per SSID. Точка доступа передает трафик клиентов в соответствующий VLAN, а core router применяет правила доступа.
+For CAPsMAN or the WiFi package in RouterOS 7, this means VLAN per SSID. The access point sends client traffic into the corresponding VLAN, and the core router applies the access rules.
 
-## Базовая security policy
+## Baseline security policy
 
-Минимальная логика доступа:
+Minimal access logic:
 
-| Источник | Назначение | Политика |
+| Source | Destination | Policy |
 | --- | --- | --- |
-| Management | Router, switch, AP | Разрешено |
-| LAN | Internet | Разрешено |
-| LAN | IoT | Только нужные сервисы |
-| Guest | Internet | Разрешено |
-| Guest | LAN/Management/Server | Запрещено |
-| IoT | Internet | По необходимости |
-| IoT | LAN/Management | Запрещено инициировать |
-| VPN | Internal VLAN | Только явно разрешенные сети |
-| WAN | Router management | Запрещено |
+| Management | Router, switch, AP | Allow |
+| LAN | Internet | Allow |
+| LAN | IoT | Only required services |
+| Guest | Internet | Allow |
+| Guest | LAN/Management/Server | Deny |
+| IoT | Internet | As needed |
+| IoT | LAN/Management | Deny initiating access |
+| VPN | Internal VLANs | Explicit allow only |
+| WAN | Router management | Deny |
 
-Management-сервисы вроде WinBox, SSH и WebFig не публикуются в интернет. Удаленный доступ делается через WireGuard, а не через открытый management port на WAN.
+Management services such as WinBox, SSH, and WebFig are not exposed to the internet. Remote access is done through WireGuard, not through an open management port on WAN.
 
 ## Naming convention
 
-Имена должны помогать читать конфигурацию:
+Names should make the configuration readable:
 
-| Объект | Пример |
+| Object | Example |
 | --- | --- |
 | Bridge | `br-core` |
 | VLAN interface | `vlan10-mgmt`, `vlan20-lan`, `vlan30-guest` |
@@ -108,50 +108,50 @@ Management-сервисы вроде WinBox, SSH и WebFig не публикую
 | WireGuard interface | `wg-roadwarrior`, `wg-site-office` |
 | WireGuard peer | `peer-max-laptop`, `peer-office-r1` |
 
-Плохие имена вроде `vlan1`, `test`, `newbridge` работают технически, но усложняют аудит и восстановление.
+Bad names like `vlan1`, `test`, or `newbridge` work technically, but make auditing and recovery harder.
 
-## Перед применением
+## Before applying anything
 
-В этой статье мы только проектируем, но дальше в серии будут опасные изменения VLAN и firewall. Перед такими изменениями:
+In this article we are only designing, but later in the series there will be dangerous VLAN and firewall changes. Before those changes:
 
 ```routeros
 /system backup save name=before-change
 /export file=before-change
 ```
 
-Также нужно включать Safe Mode, иметь локальный доступ к роутеру или rollback-план, не применять критичные VLAN/firewall изменения удаленно без проверки, и заранее сверить имена интерфейсов, bridge, VLAN ID и подсети на конкретном устройстве.
+Also use Safe Mode, keep local access to the router or a rollback plan, do not apply critical VLAN/firewall changes remotely without testing, and check the interface names, bridge, VLAN IDs, and subnets on the actual device in advance.
 
-## Как проверить результат проектирования
+## How to validate the design
 
-До настройки оборудования у вас должны быть:
+Before configuring hardware, you should have:
 
-- список VLAN и подсетей;
-- понимание, где находится management-доступ;
-- таблица SSID -> VLAN;
-- список устройств, которые должны жить в каждом сегменте;
-- черновая матрица доступа между VLAN;
-- понимание, какие сервисы будут доступны через VPN.
+- a list of VLANs and subnets;
+- a clear understanding of where management access lives;
+- an SSID -> VLAN table;
+- a list of devices that belong in each segment;
+- a draft access matrix between VLANs;
+- a clear view of which services will be reachable through VPN.
 
-Если нельзя объяснить, почему конкретное устройство находится в конкретной VLAN, сегментация пока не готова.
+If you cannot explain why a specific device belongs in a specific VLAN, the segmentation is not ready yet.
 
-## Частые ошибки
+## Common mistakes
 
-Первая ошибка: включить bridge VLAN filtering до того, как продуман management-доступ. Это прямой путь к lockout.
+The first mistake is enabling bridge VLAN filtering before planning management access. That is a direct path to lockout.
 
-Вторая ошибка: смешать Guest, IoT и LAN в одном broadcast domain. Тогда "гостевая сеть" становится просто другим SSID с тем же уровнем доверия.
+The second mistake is mixing Guest, IoT, and LAN in the same broadcast domain. In that case, the "guest network" is just another SSID with the same trust level.
 
-Третья ошибка: открыть WinBox или SSH в интернет. Это не удаленное администрирование, а лишняя поверхность атаки.
+The third mistake is exposing WinBox or SSH to the internet. That is not remote administration; it is unnecessary attack surface.
 
-Четвертая ошибка: включить IPv6 и забыть, что NAT больше не скрывает внутренние адреса. IPv6 требует отдельного firewall.
+The fourth mistake is enabling IPv6 and forgetting that NAT no longer hides internal addresses. IPv6 requires a separate firewall.
 
 ## Security notes
 
-Сеть считается нормальной не тогда, когда все друг друга видят, а когда каждый сегмент видит только то, что ему нужно. Default-deny между сегментами проще сопровождать, чем бесконечные исключения поверх широкого allow.
+A network is healthy not when everything can see everything else, but when each segment can see only what it needs. Default-deny between segments is easier to maintain than endless exceptions on top of broad allow rules.
 
-Не нужно пытаться решить все правилами firewall, если архитектура плохая. Сначала роли и сегменты, потом маршрутизация, потом firewall, потом наблюдаемость.
+Do not try to solve everything with firewall rules if the architecture is bad. First roles and segments, then routing, then firewall, then observability.
 
-## Мини-вывод
+## Short takeaway
 
-Мы строим управляемую сеть: MikroTik как core router/firewall, VLAN для разных уровней доверия, Wi-Fi как access layer, management только из trusted/VPN, отдельные политики для Guest, IoT, LAN и серверов.
+We are building a managed network: MikroTik as the core router/firewall, VLANs for different trust levels, Wi-Fi as the access layer, management only from trusted/VPN paths, and separate policies for Guest, IoT, LAN, and servers.
 
-Следующая статья будет про выбор железа MikroTik: какой router, switch и Wi-Fi подойдут под такую архитектуру и где нужен запас на рост.
+The next article is about choosing MikroTik hardware: which router, switch, and Wi-Fi devices fit this architecture and where you need growth margin.

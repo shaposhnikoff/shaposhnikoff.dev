@@ -1,39 +1,39 @@
 ---
-title: "Bridge VLAN filtering на MikroTik: trunk, access, PVID и защита от lockout"
+title: "Bridge VLAN filtering on MikroTik: trunk, access, PVID, and lockout protection"
 date: 2026-03-15
-summary: "Настройка bridge VLAN filtering в RouterOS 7: trunk, access, PVID, bridge VLAN table и защита от lockout."
+summary: "Configuring bridge VLAN filtering in RouterOS 7: trunk, access, PVID, bridge VLAN table, and lockout protection."
 tags: ["mikrotik","routeros","vlan","bridge"]
 topics: ["networking"]
 toc: true
 ---
 
-# Bridge VLAN filtering на MikroTik: trunk, access, PVID и защита от lockout
+# Bridge VLAN filtering on MikroTik: trunk, access, PVID, and lockout protection
 
-Bridge VLAN filtering в RouterOS 7 - ключевой механизм для нормальной VLAN-схемы на MikroTik. Он позволяет одному bridge обслуживать несколько VLAN, разделять tagged и untagged traffic, делать trunk к switch/AP и access-порты для конечных устройств.
+Bridge VLAN filtering in RouterOS 7 is the key mechanism for a proper VLAN design on MikroTik. It lets one bridge serve multiple VLANs, separate tagged and untagged traffic, build trunks to switches/APs, and provide access ports for endpoint devices.
 
-Это одна из самых полезных и одновременно опасных тем серии: неправильный порядок действий легко приводит к потере доступа к роутеру.
+This is one of the most useful and most dangerous topics in the series: the wrong order of operations can easily cut off access to the router.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-В предыдущей статье мы спроектировали VLAN ID, подсети, роли портов и management path. Теперь этот план переносится в RouterOS bridge.
+In the previous article, we designed VLAN IDs, subnets, port roles, and the management path. Now that plan is moved into the RouterOS bridge.
 
-На этом этапе мы еще не строим полный firewall. Наша задача - правильно доставить L2/VLAN до L3-интерфейсов MikroTik и физических портов.
+At this stage we are not building the full firewall yet. The task is to deliver L2/VLAN correctly to MikroTik L3 interfaces and physical ports.
 
-## Основные понятия
+## Basic concepts
 
-Bridge в RouterOS объединяет L2-порты. VLAN filtering включает на bridge контроль VLAN membership: какие VLAN разрешены на каких портах, где трафик tagged, где untagged и какой PVID применяется.
+A bridge in RouterOS joins L2 ports. VLAN filtering enables VLAN membership control on the bridge: which VLANs are allowed on which ports, where traffic is tagged, where it is untagged, and which PVID is applied.
 
-Trunk port несет несколько VLAN tagged. Access port отдает клиенту одну VLAN untagged. PVID определяет VLAN для входящего untagged traffic.
+A trunk port carries multiple VLANs tagged. An access port gives the client one VLAN untagged. PVID defines the VLAN for incoming untagged traffic.
 
-Bridge VLAN table описывает, какие порты участвуют в каждой VLAN:
+The bridge VLAN table describes which ports participate in each VLAN:
 
-- tagged: trunk-порты и сам bridge для L3 VLAN-interface;
-- untagged: access-порты;
-- pvid: VLAN, в которую попадет untagged traffic на порту.
+- tagged: trunk ports and the bridge itself for the L3 VLAN interface;
+- untagged: access ports;
+- pvid: the VLAN where untagged traffic on a port lands.
 
-## Перед применением
+## Before applying anything
 
-Это рискованный этап. Перед настройкой:
+This is a risky stage. Before configuration:
 
 ```routeros
 /system backup save name=before-bridge-vlan-filtering
@@ -41,7 +41,7 @@ Bridge VLAN table описывает, какие порты участвуют �
 /system console safe-mode
 ```
 
-Обязательно имейте локальный доступ или отдельный временный management-порт. Не включайте `vlan-filtering=yes` удаленно без rollback-плана. Проверьте реальные имена интерфейсов:
+Make sure you have local access or a separate temporary management port. Do not enable `vlan-filtering=yes` remotely without a rollback plan. Check real interface names:
 
 ```routeros
 /interface print
@@ -49,23 +49,23 @@ Bridge VLAN table описывает, какие порты участвуют �
 /interface bridge port print
 ```
 
-## Базовая последовательность
+## Baseline sequence
 
-Безопаснее идти так:
+The safer order is:
 
-1. Создать или проверить bridge с `vlan-filtering=no`.
-2. Добавить порты в bridge.
-3. Настроить PVID для access-портов.
-4. Создать VLAN interfaces на bridge для L3.
-5. Заполнить bridge VLAN table.
-6. Проверить таблицы.
-7. Только потом включить `vlan-filtering=yes`.
+1. Create or check the bridge with `vlan-filtering=no`.
+2. Add ports to the bridge.
+3. Configure PVID for access ports.
+4. Create VLAN interfaces on the bridge for L3.
+5. Fill in the bridge VLAN table.
+6. Check the tables.
+7. Only then enable `vlan-filtering=yes`.
 
-Не начинайте с последнего пункта.
+Do not start from the last step.
 
-## Пример bridge и портов
+## Example bridge and ports
 
-Имена ниже placeholders. Замените их на реальные:
+The names below are placeholders. Replace them with real ones:
 
 ```routeros
 /interface bridge
@@ -77,11 +77,11 @@ add bridge=br-core interface=<access-lan-port> pvid=20
 add bridge=br-core interface=<access-mgmt-port> pvid=10
 ```
 
-Trunk принимает tagged traffic. Access-порты получают PVID, чтобы untagged клиент попадал в нужную VLAN.
+The trunk accepts tagged traffic. Access ports get a PVID so an untagged client lands in the correct VLAN.
 
-## VLAN interfaces для L3
+## VLAN interfaces for L3
 
-Если MikroTik будет gateway для VLAN, создайте VLAN interfaces на bridge:
+If MikroTik will be the gateway for VLANs, create VLAN interfaces on the bridge:
 
 ```routeros
 /interface vlan
@@ -91,11 +91,11 @@ add name=vlan30-guest interface=br-core vlan-id=30
 add name=vlan40-iot interface=br-core vlan-id=40
 ```
 
-Именно эти interfaces позже получат IP addresses, DHCP servers и firewall membership.
+These interfaces will later receive IP addresses, DHCP servers, and firewall membership.
 
 ## Bridge VLAN table
 
-Пример:
+Example:
 
 ```routeros
 /interface bridge vlan
@@ -105,11 +105,11 @@ add bridge=br-core vlan-ids=30 tagged=br-core,<trunk-to-switch>
 add bridge=br-core vlan-ids=40 tagged=br-core,<trunk-to-switch>
 ```
 
-`br-core` должен быть tagged для VLAN, где на самом роутере есть L3 VLAN interface. Иначе RouterOS не сможет корректно принимать этот VLAN на CPU.
+`br-core` must be tagged for VLANs where the router itself has an L3 VLAN interface. Otherwise RouterOS will not correctly receive that VLAN on the CPU.
 
-## Включение filtering
+## Enabling filtering
 
-Перед включением проверьте:
+Before enabling it, check:
 
 ```routeros
 /interface bridge port print
@@ -117,17 +117,17 @@ add bridge=br-core vlan-ids=40 tagged=br-core,<trunk-to-switch>
 /interface vlan print
 ```
 
-Если таблица выглядит правильно и management path сохранен, включайте:
+If the table looks correct and the management path is preserved, enable:
 
 ```routeros
 /interface bridge set br-core vlan-filtering=yes
 ```
 
-Если доступ пропал, Safe Mode должен откатить изменения. Если Safe Mode не использовался, понадобится локальный доступ или сброс/восстановление.
+If access disappears, Safe Mode should roll back the changes. If Safe Mode was not used, local access or reset/recovery may be required.
 
-## Как проверить результат
+## How to verify the result
 
-Проверки:
+Checks:
 
 ```routeros
 /interface bridge port print
@@ -136,32 +136,32 @@ add bridge=br-core vlan-ids=40 tagged=br-core,<trunk-to-switch>
 /ip address print
 ```
 
-С клиентского устройства:
+From a client device:
 
-- access LAN port получает адрес из LAN VLAN;
-- management host видит router management IP;
-- Guest/IoT SSID или ports попадают в свои подсети;
-- trunk к switch/AP несет нужные tagged VLAN;
-- untagged traffic не появляется там, где его не должно быть.
+- an access LAN port receives an address from the LAN VLAN;
+- a management host sees the router management IP;
+- Guest/IoT SSIDs or ports land in their subnets;
+- the trunk to switch/AP carries the required tagged VLANs;
+- untagged traffic does not appear where it should not.
 
-## Частые ошибки
+## Common mistakes
 
-Не добавить `br-core` как tagged в VLAN table для L3 VLAN. В результате VLAN interface есть, но трафик не работает.
+Not adding `br-core` as tagged in the VLAN table for an L3 VLAN. The VLAN interface exists, but traffic does not work.
 
-Перепутать tagged и untagged на trunk/access ports.
+Mixing up tagged and untagged on trunk/access ports.
 
-Оставить trunk с untagged native VLAN без осознанного решения.
+Leaving a trunk with an untagged native VLAN without a conscious decision.
 
-Включить filtering до настройки PVID и VLAN table.
+Enabling filtering before PVID and the VLAN table are configured.
 
 ## Security notes
 
-Для trunk-портов полезно ограничивать frame types и ingress filtering, но точный набор параметров зависит от модели, switch chip и RouterOS version. Проверяйте на CHR или тестовом устройстве перед переносом в production.
+For trunk ports, it is useful to restrict frame types and enable ingress filtering, but the exact parameter set depends on the model, switch chip, and RouterOS version. Test on CHR or a spare device before moving to production.
 
-VLAN filtering не заменяет firewall. После L2-сегментации нужно настроить L3 firewall между VLAN.
+VLAN filtering does not replace firewall. After L2 segmentation, configure the L3 firewall between VLANs.
 
-## Мини-вывод
+## Short takeaway
 
-Bridge VLAN filtering дает MikroTik аккуратную VLAN-основу: trunk, access, PVID и bridge VLAN table. Главный принцип - сначала таблицы и management path, потом `vlan-filtering=yes`.
+Bridge VLAN filtering gives MikroTik a clean VLAN foundation: trunk, access, PVID, and the bridge VLAN table. The main principle is: first tables and management path, then `vlan-filtering=yes`.
 
-Следующая статья будет про DHCP, DNS и базовую маршрутизацию для нескольких VLAN.
+The next article is about DHCP, DNS, and basic routing for multiple VLANs.

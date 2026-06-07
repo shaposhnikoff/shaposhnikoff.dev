@@ -1,66 +1,66 @@
 ---
-title: "Первичная настройка RouterOS 7: безопасный старт без магии"
+title: "Initial RouterOS 7 setup: a safe start without magic"
 date: 2026-03-12
-summary: "Baseline-настройка RouterOS 7: доступы, сервисы, обновления, время, backup/export и минимальная защита management."
+summary: "RouterOS 7 baseline setup: access, users, services, updates, time, backup/export, and minimal management protection."
 tags: ["mikrotik","routeros","security","baseline"]
 topics: ["networking"]
 toc: true
 ---
 
-# Первичная настройка RouterOS 7: безопасный старт без магии
+# Initial RouterOS 7 setup: a safe start without magic
 
-Новый MikroTik не должен сразу становиться production-router. Сначала нужно привести RouterOS к понятному базовому состоянию: доступ, учетные записи, services, обновления, время, backup/export и минимальная защита management.
+A new MikroTik should not immediately become a production router. First, bring RouterOS into a clear baseline state: access, user accounts, services, updates, time, backup/export, and minimal management protection.
 
-Эта статья не про полный firewall и не про VLAN. Это baseline, который снижает риск еще до сложной настройки.
+This article is not about a full firewall or VLANs. It is a baseline that reduces risk before the more complex configuration begins.
 
-## Где это находится в общей архитектуре
+## Where this fits in the overall architecture
 
-Baseline идет до core routing, VLAN и firewall hardening. Если на этом этапе оставить дефолтные сервисы, слабый пароль, непонятные интерфейсы и отсутствие backup, дальше любая ошибка будет болезненнее.
+The baseline comes before core routing, VLANs, and firewall hardening. If you leave default services, a weak password, unclear interfaces, and no backup at this stage, every later mistake hurts more.
 
-После baseline устройство готово к роли core router: его можно подключать к архитектуре, описывать интерфейсы, планировать VLAN и постепенно строить правила.
+After the baseline, the device is ready for the core router role: you can connect it to the architecture, document interfaces, plan VLANs, and gradually build the rules.
 
-## Основные понятия
+## Basic concepts
 
-Первичная настройка включает:
+Initial setup includes:
 
-- доступ к устройству локально, а не через интернет;
-- смену дефолтных учетных данных;
-- отключение ненужных сервисов;
-- обновление RouterOS и firmware;
-- настройку времени и DNS;
-- создание backup/export;
-- понятные имена интерфейсов;
-- базовые interface lists;
-- проверку, что management не торчит наружу.
+- local device access, not internet access;
+- changing default credentials;
+- disabling unnecessary services;
+- updating RouterOS and firmware;
+- configuring time and DNS;
+- creating backup/export;
+- clear interface names or comments;
+- basic interface lists;
+- checking that management is not exposed externally.
 
-Нельзя считать baseline завершенным, если вы не знаете, как восстановиться после ошибки.
+The baseline is not complete if you do not know how to recover after a mistake.
 
-## Перед применением
+## Before applying anything
 
-Даже первичная настройка может привести к потере доступа. Работайте локально, держите физический доступ к устройству и сохраняйте текущую конфигурацию:
+Even initial setup can cause loss of access. Work locally, keep physical access to the device, and save the current configuration:
 
 ```routeros
 /system backup save name=before-baseline
 /export file=before-baseline
 ```
 
-Для рискованных изменений используйте Safe Mode:
+Use Safe Mode for risky changes:
 
 ```routeros
 /system console safe-mode
 ```
 
-Проверьте реальные имена интерфейсов:
+Check real interface names:
 
 ```routeros
 /interface print
 ```
 
-Не применяйте команды blindly: на разных моделях имена портов, wireless/WiFi package и дефолтная конфигурация отличаются.
+Do not apply commands blindly: port names, wireless/WiFi packages, and default configuration differ across models.
 
-## Первичная диагностика
+## Initial diagnostics
 
-Начните с чтения состояния:
+Start by reading the state:
 
 ```routeros
 /system resource print
@@ -73,28 +73,28 @@ Baseline идет до core routing, VLAN и firewall hardening. Если на �
 /user print
 ```
 
-Этот блок показывает версию RouterOS, модель, firmware, интерфейсы, адреса, маршруты, включенные management-сервисы и пользователей.
+This block shows the RouterOS version, model, firmware, interfaces, addresses, routes, enabled management services, and users.
 
-## Учетные записи
+## User accounts
 
-Если есть дефолтный пользователь, его нельзя оставлять с известным именем и слабым паролем. Практичный подход:
+If a default user exists, do not leave it with a known name and weak password. A practical approach:
 
 ```routeros
 /user add name=<admin-user> group=full password=<strong-password>
 /user disable [find name=admin]
 ```
 
-Перед отключением `admin` обязательно проверьте, что новый пользователь работает и имеет нужные права. Не удаляйте старого пользователя до проверки.
+Before disabling `admin`, make sure the new user works and has the required permissions. Do not remove the old user before testing.
 
-## Services и management
+## Services and management
 
-Проверьте включенные сервисы:
+Check enabled services:
 
 ```routeros
 /ip service print
 ```
 
-Обычно наружу не должны быть доступны WinBox, SSH, API, WebFig, FTP и Telnet. Telnet и FTP лучше отключить:
+WinBox, SSH, API, WebFig, FTP, and Telnet usually should not be reachable from outside. Telnet and FTP are better disabled:
 
 ```routeros
 /ip service disable [find name=telnet]
@@ -104,34 +104,34 @@ Baseline идет до core routing, VLAN и firewall hardening. Если на �
 /ip service disable [find name=api-ssl]
 ```
 
-SSH и WinBox можно оставить только для trusted management-сети. Если management VLAN еще не настроен, не пытайтесь сразу привязать сервисы к будущим адресам. Сначала настройте безопасный локальный доступ и firewall.
+SSH and WinBox can remain enabled only for a trusted management network. If the management VLAN is not configured yet, do not immediately bind services to future addresses. First establish safe local access and firewall protection.
 
-## Обновления и firmware
+## Updates and firmware
 
-Проверьте канал обновлений и версию:
+Check the update channel and version:
 
 ```routeros
 /system package update print
 /system package update check-for-updates
 ```
 
-После обновления RouterOS проверьте RouterBOARD firmware:
+After updating RouterOS, check RouterBOARD firmware:
 
 ```routeros
 /system routerboard print
 ```
 
-Если firmware отличается от current firmware, обновление выполняется отдельно:
+If firmware differs from current firmware, upgrade it separately:
 
 ```routeros
 /system routerboard upgrade
 ```
 
-После этого требуется reboot. Делайте это в обслуживаемое окно, особенно если устройство уже обслуживает сеть.
+A reboot is required after that. Do it in a maintenance window, especially if the device already serves a network.
 
-## Время, DNS и идентичность
+## Time, DNS, and identity
 
-Для логов, сертификатов, DoH, monitoring и backup важно корректное время:
+Correct time matters for logs, certificates, DoH, monitoring, and backups:
 
 ```routeros
 /system clock set time-zone-name=<region/city>
@@ -139,24 +139,24 @@ SSH и WinBox можно оставить только для trusted management
 /system ntp client servers add address=<ntp-server>
 ```
 
-Идентичность устройства должна быть понятной:
+The device identity should be clear:
 
 ```routeros
 /system identity set name=<site-role-device>
 ```
 
-DNS на baseline-этапе можно задать внешними resolver, но `allow-remote-requests=yes` нужно использовать осторожно и закрывать firewall с WAN.
+At the baseline stage, DNS can use external resolvers, but `allow-remote-requests=yes` must be used carefully and blocked from WAN by firewall.
 
-## Интерфейсы и списки
+## Interfaces and lists
 
-Переименовывать интерфейсы необязательно, но комментарии помогают:
+Renaming interfaces is optional, but comments help:
 
 ```routeros
 /interface set [find default-name=<wan-port>] comment="WAN uplink"
 /interface set [find default-name=<lan-port>] comment="LAN or trunk candidate"
 ```
 
-Создайте базовые interface lists, если их нет:
+Create basic interface lists if they do not exist:
 
 ```routeros
 /interface list
@@ -165,7 +165,7 @@ add name=LAN
 add name=MGMT
 ```
 
-Добавление members делайте только после проверки реальных интерфейсов:
+Add members only after checking the real interfaces:
 
 ```routeros
 /interface list member
@@ -173,64 +173,64 @@ add list=WAN interface=<wan-interface>
 add list=LAN interface=<lan-or-bridge-interface>
 ```
 
-Эти списки позже будут использоваться в firewall и NAT.
+These lists will later be used in firewall and NAT rules.
 
-## Backup и export
+## Backup and export
 
-Сделайте оба типа:
+Create both types:
 
 ```routeros
 /system backup save name=baseline
 /export file=baseline
 ```
 
-Binary backup удобен для восстановления на том же устройстве. `/export` удобен для аудита, переноса логики и ручного восстановления на другой модели.
+Binary backup is convenient for restoring on the same device. `/export` is useful for audits, moving logic, and manual recovery on another model.
 
-Хранить оба файла только на роутере недостаточно. Их нужно забрать наружу и хранить в безопасном месте.
+Keeping both files only on the router is not enough. Copy them out and store them in a secure location.
 
-## Как проверить результат
+## How to verify the result
 
-Baseline можно считать завершенным, если:
+The baseline can be considered complete if:
 
-- известна версия RouterOS и firmware;
-- создан новый администратор, дефолтный `admin` отключен или защищен;
-- отключены ненужные services;
-- management не открыт в интернет;
-- время и identity настроены;
-- есть backup и export;
-- интерфейсы и interface lists понятны;
-- есть локальный план восстановления доступа.
+- the RouterOS and firmware versions are known;
+- a new administrator exists, and default `admin` is disabled or protected;
+- unnecessary services are disabled;
+- management is not exposed to the internet;
+- time and identity are configured;
+- backup and export exist;
+- interfaces and interface lists are clear;
+- there is a local access recovery plan.
 
-Проверьте services:
+Check services:
 
 ```routeros
 /ip service print
 ```
 
-Проверьте логи:
+Check logs:
 
 ```routeros
 /log print
 ```
 
-## Частые ошибки
+## Common mistakes
 
-Отключить текущий способ доступа до проверки нового. Это классический lockout.
+Disabling the current access method before testing the new one. This is a classic lockout.
 
-Обновить RouterOS удаленно без backup и без понимания, как устройство перезагрузится.
+Updating RouterOS remotely without a backup and without understanding how the device will reboot.
 
-Оставить WebFig/API/FTP/Telnet включенными "на всякий случай".
+Leaving WebFig/API/FTP/Telnet enabled "just in case".
 
-Включить DNS cache для клиентов и случайно сделать open resolver с WAN.
+Enabling DNS cache for clients and accidentally creating an open resolver from WAN.
 
 ## Security notes
 
-Baseline не заменяет firewall hardening, но убирает очевидные слабые места. Чем меньше management-сервисов включено, тем проще защитить роутер.
+The baseline does not replace firewall hardening, but it removes obvious weak points. The fewer management services are enabled, the easier the router is to protect.
 
-Не публикуйте WinBox/SSH/WebFig в интернет. Для удаленного управления дальше в серии будет WireGuard.
+Do not expose WinBox/SSH/WebFig to the internet. Later in the series, WireGuard will cover remote management.
 
-## Мини-вывод
+## Short takeaway
 
-Первичная настройка должна сделать роутер понятным и восстанавливаемым: доступы, services, обновления, время, backup/export и начальная структура интерфейсов.
+Initial setup should make the router understandable and recoverable: access, services, updates, time, backup/export, and the initial interface structure.
 
-Следующая статья будет про MikroTik как core router: где проходят границы ответственности между routing, switching, firewall и access layer.
+The next article is about MikroTik as the core router: where the responsibility boundaries are between routing, switching, firewall, and the access layer.

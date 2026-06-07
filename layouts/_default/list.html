@@ -5,7 +5,7 @@
   {{ with .Description }}<p class="section-head__lede">{{ . }}</p>{{ end }}
 </header>
 
-<div class="wrap">
+<div class="list-wrap">
   {{ with .Content }}<div class="prose flow" style="max-width: var(--w-prose); margin-bottom: var(--s-7)">{{ . }}</div>{{ end }}
 
   {{ if .Pages }}
