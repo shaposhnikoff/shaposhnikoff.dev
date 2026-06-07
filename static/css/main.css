@@ -49,8 +49,6 @@
   --w-wide:   1080px;
   --w-article: 1280px;
   --w-article-prose: 76ch;
-  --w-article-toc: 260px;
-  --w-article-layout: calc(var(--w-article-prose) + var(--w-article-toc) + var(--s-7));
   --w-narrow: 540px;
 
   /* Light theme (default) */
@@ -734,7 +732,7 @@ main { flex: 1 0 auto; }
   padding-block: var(--s-7) var(--s-5);
   border-bottom: 1px solid var(--rule);
   margin-bottom: var(--s-6);
-  max-width: var(--w-article-layout);
+  max-width: var(--w-article-prose);
   margin-inline: auto;
 }
 .article-head__meta {
@@ -758,7 +756,7 @@ main { flex: 1 0 auto; }
   margin-top: var(--s-7);
   margin-inline: auto;
   padding-top: var(--s-4);
-  max-width: var(--w-article-layout);
+  max-width: var(--w-article-prose);
   border-top: 1px solid var(--rule);
   display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--s-3);
   font-family: var(--font-mono); font-size: 12.5px;
@@ -796,28 +794,9 @@ main { flex: 1 0 auto; }
   border-left-color: var(--accent);
 }
 
-/* Single article layout */
 .single-body {
   max-width: var(--w-article-prose);
   margin-inline: auto;
-}
-.single-body--toc {
-  display: grid;
-  grid-template-columns: minmax(0, var(--w-article-prose)) minmax(0, var(--w-article-toc));
-  gap: var(--s-7);
-  align-items: start;
-  max-width: var(--w-article-layout);
-  margin-inline: auto;
-}
-.single-body--toc .toc {
-  position: sticky; top: 80px;
-  max-height: calc(100dvh - 100px);
-  overflow: auto;
-  padding-right: var(--s-2);
-}
-@media (max-width: 980px) {
-  .single-body--toc { grid-template-columns: 1fr; max-width: var(--w-article-prose); }
-  .single-body--toc .toc { position: static; max-height: none; border-top: 1px solid var(--rule); padding-top: var(--s-4); margin-top: var(--s-6); }
 }
 
 /* 10. Cards --------------------------------------------------------------- */
