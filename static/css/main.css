@@ -138,7 +138,15 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: var(--s-6) 0; }
 
 /* 3. Type ----------------------------------------------------------------- */
 
-html { font-size: var(--fs-base); }
+html { font-size: calc(var(--fs-base) * var(--font-scale, 1)); }
+
+/* Reader text-size and weight preferences, set on <html> by site.js */
+:root[data-font-step="-1"] { --font-scale: 0.9; }
+:root[data-font-step="1"]  { --font-scale: 1.15; }
+:root[data-font-step="2"]  { --font-scale: 1.3; }
+:root[data-font-step="3"]  { --font-scale: 1.5; }
+:root[data-font-bold] body { font-weight: 600; }
+:root[data-font-bold] :is(h1, h2, h3, h4, strong, b) { font-weight: 700; }
 body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "cv11";
@@ -268,6 +276,21 @@ main { flex: 1 0 auto; }
   color: var(--fg);
   border-bottom-color: var(--accent);
 }
+
+.font-controls { display: inline-flex; gap: var(--s-1); }
+.font-btn {
+  min-width: 32px; height: 32px;
+  padding-inline: var(--s-1);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--fg-soft);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: border-color .15s var(--tx), color .15s var(--tx);
+}
+.font-btn:hover { color: var(--fg); border-color: var(--fg-muted); }
+.font-btn:disabled { opacity: .4; cursor: default; }
+.font-btn[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); font-weight: 700; }
 
 .theme-toggle {
   width: 32px; height: 32px;

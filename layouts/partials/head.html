@@ -28,7 +28,7 @@
 {{ partial "schema-person.html" . }}
 {{ if and .IsPage (eq .Section "blog") }}{{ partial "schema-blogpost.html" . }}{{ end }}
 
-{{/* Pre-paint theme: avoid FOUC when stored preference differs from system */}}
+{{/* Pre-paint theme and text size/weight: avoid FOUC and layout jump on load */}}
 <script>
-(function(){try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();
+(function(){try{var d=document.documentElement,t=localStorage.getItem("theme");if(t==="light"||t==="dark"){d.setAttribute("data-theme",t);}var s=parseInt(localStorage.getItem("fontStep"),10);if(s>=-1&&s<=3&&s!==0){d.setAttribute("data-font-step",String(s));}if(localStorage.getItem("fontBold")==="1"){d.setAttribute("data-font-bold","");}}catch(e){}})();
 </script>
