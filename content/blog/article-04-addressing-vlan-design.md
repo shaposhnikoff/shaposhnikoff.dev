@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Addressing plan and VLAN design: segments, subnets, and access rules
-
 VLAN design is not a list of nice-looking IDs. It is a document that explains which segments exist in the network, which devices live in them, which subnets are used, and which access flows are allowed.
 
 If this plan is not created before bridge VLAN filtering, the risk of lockout and chaotic firewall rules rises sharply.

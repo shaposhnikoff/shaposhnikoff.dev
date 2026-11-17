@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# NAT, port forwarding, and hairpin NAT: exposing services with minimal risk
-
 NAT is often treated as firewall, but they are different things. NAT changes addresses and ports, while firewall decides which traffic is allowed. If you expose a service through port forwarding without a careful firewall, you may create unnecessary attack surface.
 
 In this article we cover srcnat for internet access, dstnat for publishing a service, and hairpin NAT for accessing an internal service through its external name from LAN.

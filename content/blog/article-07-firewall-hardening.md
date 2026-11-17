@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Firewall hardening on MikroTik: input, forward, WAN, and management access
-
 Firewall on MikroTik is where architecture becomes policy. VLANs have already split the network, DHCP/DNS already serve clients, but without firewall, different segments can get overly broad access to each other.
 
 The goal of this article is to build a safe baseline: protect the router itself in `input`, control transit traffic in `forward`, close WAN, and leave management only to trusted networks.

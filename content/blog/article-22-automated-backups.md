@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Automated backups: binary backup, export, scheduler, and off-router storage
-
 Backup is needed not when everything works, but when you make a mistake, the device dies, or an update goes wrong. On MikroTik, it is important to distinguish binary backup from `/export`.
 
 A normal strategy includes automatic creation, storage outside the router, restore testing, and success monitoring.

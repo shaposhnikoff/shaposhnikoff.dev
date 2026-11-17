@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Guest Wi-Fi through a separate VLAN: internet access without LAN access
-
 A guest network should provide internet access, not access to your laptops, NAS, printers, and management interfaces. A separate SSID without a separate VLAN and firewall is often just cosmetic.
 
 In this article we build Guest Wi-Fi as a separate segment: SSID -> Guest VLAN -> DHCP/DNS -> internet only -> no access to internal networks.

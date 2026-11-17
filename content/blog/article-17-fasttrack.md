@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# FastTrack on MikroTik: acceleration, exceptions, and side effects
-
 FastTrack accelerates processing for some IPv4 traffic in RouterOS by bypassing certain later packet processing stages. It is useful for performance, but it can conflict with QoS, accounting, queues, policy routing, and some firewall scenarios.
 
 Do not enable FastTrack as "speed everything up" without understanding the consequences.

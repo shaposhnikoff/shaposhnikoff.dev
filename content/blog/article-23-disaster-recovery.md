@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Disaster recovery: restoring the network after router failure or configuration mistakes
-
 Disaster recovery is not heroic late-night restoration; it is a prepared plan. If the router dies, configuration breaks, or VLAN/firewall cuts off access, you should know the next step.
 
 A DR plan is especially important for a network where MikroTik is the core router/firewall.

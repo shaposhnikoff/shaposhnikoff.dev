@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# DHCP, DNS, and basic routing for multiple VLANs
-
 After VLAN filtering, every segment needs an L3 foundation: gateway, DHCP, DNS, and routing. At this stage the network becomes convenient for clients, but it still needs a careful security policy.
 
 MikroTik RouterOS 7 works well for basic DHCP/DNS in a small network if you do not turn the DNS cache into an open resolver and do not forget the firewall.

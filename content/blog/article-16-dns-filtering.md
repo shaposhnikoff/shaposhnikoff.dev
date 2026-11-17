@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# DNS filtering: AdGuard Home, Pi-hole, NextDNS, and different policies for VLANs
-
 DNS filtering helps block ads, malware domains, trackers, and unwanted categories. But it works only for DNS queries that actually pass through the selected resolver.
 
 In a VLAN network, filtering should differ by segment: IoT and Guest are usually stricter, Management is more conservative, and LAN is more flexible.

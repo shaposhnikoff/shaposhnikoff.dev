@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# What we are building: the target network architecture on MikroTik RouterOS 7
-
 A home or office network often starts with a simple goal: make the internet work. That is not enough for normal operations. If work laptops, phones, cameras, IoT devices, a NAS, guest devices, and VPN clients all live in one network, "one router, one Wi-Fi, one NAT" quickly turns into an unmanaged risk zone.
 
 In this series we build a MikroTik RouterOS 7 network as an engineered system: clear architecture, segmentation, access restrictions, observability, backups, and a recovery plan.

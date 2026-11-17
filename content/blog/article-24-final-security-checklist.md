@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Final security checklist: verifying the network before calling it ready
-
 A network is not ready just because the internet works. A ready network is segmented, manageable, observable, documented, and recoverable.
 
 This final checklist helps review every layer: RouterOS baseline, VLANs, firewall, Wi-Fi, IPv6, VPN, DNS, monitoring, backups, and DR.

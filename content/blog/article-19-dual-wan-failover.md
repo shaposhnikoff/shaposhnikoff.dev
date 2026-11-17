@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Dual WAN and failover: backup ISP, routes, checks, and notifications
-
 Dual WAN is useful when availability matters more than simplicity. A backup ISP can save remote work, VPN, monitoring, and services, but only if failover is configured deliberately.
 
 Simply adding a second default route is not enough. You need to understand distance, gateway checks, routing tables, NAT, DNS, and notifications.

@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Bridge VLAN filtering on MikroTik: trunk, access, PVID, and lockout protection
-
 Bridge VLAN filtering in RouterOS 7 is the key mechanism for a proper VLAN design on MikroTik. It lets one bridge serve multiple VLANs, separate tagged and untagged traffic, build trunks to switches/APs, and provide access ports for endpoint devices.
 
 This is one of the most useful and most dangerous topics in the series: the wrong order of operations can easily cut off access to the router.

@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# IPv6 on MikroTik: prefix delegation, RA/SLAAC, and a separate firewall
-
 IPv6 is not "IPv4 with longer addresses". It has a different addressing, discovery, autoconfiguration, and security model. The familiar NAT from IPv4 is not the main protection boundary.
 
 If you enable IPv6 without a firewall, internal devices can receive global addresses and become more reachable than you expect.

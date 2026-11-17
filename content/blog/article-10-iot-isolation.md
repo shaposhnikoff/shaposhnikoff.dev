@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# IoT isolation: a separate segment for smart devices without breaking smart home
-
 IoT devices are convenient, but they should not be trusted like a work laptop. Cameras, bulbs, plugs, TVs, and appliances are often updated rarely, actively talk to cloud services, and may have a weak security model.
 
 The goal of IoT isolation is to separate these devices from LAN and Management without breaking required smart-home scenarios.
