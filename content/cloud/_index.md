@@ -1,140 +1,62 @@
 ---
 title: "Cloud"
-description: "Notes on cloud infrastructure: AWS-first, multi-account landing zones, isolation, cost."
+description: "AWS and Azure, Terraform, cost, observability - and where LLMs actually help in day-to-day infra work."
 date: 2026-01-01
 ---
 
-# Cloud Engineering Competencies
+I've been running infrastructure for a long time, mostly on AWS and Azure these
+days. Most of my work comes down to the same few things: make environments
+reproducible, make them visible, and stop paying for things nobody uses.
 
-## Overview
+## What I actually do
 
-I design, build, and operate cloud-native systems with a focus on reliability, scalability, security, and maintainability. My cloud work covers infrastructure architecture, platform engineering, automation, observability, deployment workflows, and cost-conscious operations.
+**Infrastructure as code.** Terraform and Terragrunt for the cloud, Ansible for
+whatever still has an OS to configure. Multi-account on AWS, multi-subscription
+on Azure. If a change didn't go through a plan and a review, I assume it will
+drift - and it usually does.
 
-I approach cloud engineering as a combination of software design, infrastructure discipline, and operational ownership. The goal is not only to run workloads in the cloud, but to create systems that are predictable, secure, easy to change, and resilient under real production conditions.
+**Delivery.** GitHub Actions, GitLab CI, Jenkins, Tekton, Argo CD - I've
+maintained all of them, and the pipelines I like best are the boring ones.
+Shared workflows, pinned versions, a build check on every PR. Some of that lives
+in [my-shared-pipeline](/projects/my-shared-pipeline/).
 
-## Core Competency Areas
+**Observability.** Prometheus and Grafana, alerts that someone actually reads.
+If I can't answer "what changed?" from dashboards during an incident, the
+monitoring isn't done yet.
 
-### Cloud Architecture
+**Cost.** I treat the cloud bill as an engineering metric. Inventory scripts,
+lifecycle rules, rightsizing, cross-cloud reports that turn "we spend too much"
+into a list of specific resources and owners.
 
-I work on designing cloud environments that support modern application requirements, including scalability, high availability, disaster recovery, and secure network boundaries.
+**Data platforms.** EMR, Glue, Databricks, Airflow, Snowflake - mostly from the
+infrastructure side: IAM, networking, keeping the jobs running and the bill sane.
 
-Key areas include:
+## Where AI fits in
 
-- Designing cloud infrastructure for production workloads
-- Structuring environments across development, staging, and production
-- Choosing appropriate compute, storage, database, and networking services
-- Building fault-tolerant and horizontally scalable application architectures
-- Applying cloud-native design principles instead of simply migrating legacy patterns
+I use LLMs as a working tool, not a slide. Where they've earned a place for me:
 
-### Infrastructure as Code
+- **Migrations.** I built a converter on Claude that turns `.gitlab-ci.yml` into
+  GitHub Actions workflows and writes down what it mapped, what it assumed and
+  what it couldn't translate. The notes turned out to matter more than the YAML.
+- **Reviewing and validating config** - Terraform plans, CI files, policies.
+  A second pair of eyes that doesn't get bored on line 400.
+- **Documentation** that would otherwise never get written: runbooks, change
+  notes, explanations of legacy setups.
 
-I use Infrastructure as Code to make infrastructure reproducible, reviewable, and version-controlled. This reduces manual configuration, improves consistency across environments, and makes infrastructure changes easier to audit.
+The rules I stick to: no secrets or customer data in prompts, inputs get
+sanitized, output gets reviewed like any other pull request. The model drafts;
+a human (me) decides what ships.
 
-Key areas include:
+Next on my list is the other direction - running AI workloads, not just using
+them: GPU capacity and its cost, private model endpoints, and guardrails around
+who can send what to which model.
 
-- Defining infrastructure through code
-- Managing repeatable environment provisioning
-- Reviewing infrastructure changes through standard engineering workflows
-- Reducing configuration drift
-- Supporting automated deployment and rollback strategies
+## How I like to work
 
-### Containers and Orchestration
+- Everything in git, nothing clicked in a console "just this once".
+- Least privilege by default; secrets live in Key Vault / Secrets Manager, never
+  in repos.
+- If it can't be observed, it isn't in production yet.
+- The simplest setup the team can still run at 3 a.m. wins.
 
-I work with containerized workloads and orchestration platforms to improve deployment consistency, service isolation, and operational scalability.
-
-Key areas include:
-
-- Packaging applications into containers
-- Designing container-based deployment workflows
-- Managing service configuration and runtime environments
-- Supporting Kubernetes-based workloads where appropriate
-- Improving portability across cloud and platform environments
-
-### CI/CD and Deployment Automation
-
-I build and improve deployment pipelines that help teams release software safely and repeatedly. My focus is on automation, validation, traceability, and reducing operational risk.
-
-Key areas include:
-
-- Designing CI/CD workflows for cloud applications
-- Automating build, test, and deployment stages
-- Supporting progressive delivery patterns
-- Improving release reliability and rollback readiness
-- Integrating infrastructure changes into deployment workflows
-
-### Observability and Reliability
-
-I treat observability as a core part of cloud engineering. Systems should provide enough visibility to detect incidents, understand behavior, and improve reliability over time.
-
-Key areas include:
-
-- Implementing logs, metrics, traces, and alerts
-- Designing dashboards for operational visibility
-- Defining service-level indicators and reliability targets
-- Investigating production issues using system telemetry
-- Improving resilience through incident learnings
-
-### Cloud Security
-
-I apply security principles throughout cloud infrastructure and application delivery. Security should be built into architecture, access control, network design, secrets management, and operational processes.
-
-Key areas include:
-
-- Designing least-privilege access models
-- Managing identity and access control
-- Securing network boundaries and service communication
-- Handling secrets and sensitive configuration safely
-- Supporting auditability and compliance-oriented practices
-
-### Cost and Resource Optimization
-
-I consider cloud cost as an engineering responsibility. Efficient cloud systems should use resources intentionally and make cost visible during architectural and operational decisions.
-
-Key areas include:
-
-- Monitoring cloud resource usage
-- Identifying over-provisioned or unused resources
-- Choosing appropriate service tiers and scaling policies
-- Balancing reliability, performance, and cost
-- Supporting predictable cloud spending through better visibility
-
-## Technical Strengths
-
-- Cloud-native system design
-- Infrastructure automation
-- Deployment pipeline design
-- Production operations and incident analysis
-- Containerized application delivery
-- Secure cloud environment configuration
-- Scalable application infrastructure
-- Monitoring, logging, and alerting strategy
-- Reliability-oriented engineering practices
-- Cost-aware cloud operations
-
-## Engineering Philosophy
-
-My cloud engineering philosophy is based on a few practical principles:
-
-1. **Infrastructure should be reproducible.** Manual changes create risk, while codified infrastructure creates consistency.
-2. **Systems should be observable by default.** A production system is incomplete if its behavior cannot be understood.
-3. **Security should be designed in, not added later.** Access control, secrets, networking, and auditability must be part of the foundation.
-4. **Reliability is an engineering discipline.** Stable systems come from good design, automation, testing, and operational feedback.
-5. **Cloud architecture should serve the product.** Technology choices should support business goals, team velocity, and long-term maintainability.
-
-## Example Cloud Work
-
-Examples of cloud-related work may include:
-
-- Designing infrastructure for web applications and backend services
-- Building deployment workflows for production systems
-- Migrating services toward cloud-native infrastructure
-- Improving reliability and observability of existing systems
-- Automating environment creation and configuration
-- Supporting secure access patterns and service isolation
-- Optimizing cloud costs and resource usage
-
-## What I Bring to Cloud Projects
-
-I bring a practical engineering approach to cloud projects: strong technical fundamentals, attention to operational detail, and a focus on systems that are maintainable after the initial launch. I care about clean architecture, automation, security, and the long-term reliability of the platform.
-
-My goal is to help build cloud environments that enable faster delivery while keeping production systems stable, secure, and understandable.
+More detail in the [CV](/cv/), or just [write to me](/contact/).
