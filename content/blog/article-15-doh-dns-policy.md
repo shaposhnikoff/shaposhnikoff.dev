@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# DoH DNS and DNS policy: MikroTik DNS cache, enforcement, and limitations
-
 DNS policy is not only choosing a resolver. It is deciding who in the network may use which DNS servers, how local names are handled, whether filtering is needed, what to do with DoH, and how not to turn the router into an open resolver.
 
 MikroTik can be a DNS cache and enforcement point, but it does not solve every privacy and filtering problem by itself.

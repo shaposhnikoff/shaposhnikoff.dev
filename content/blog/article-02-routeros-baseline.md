@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Initial RouterOS 7 setup: a safe start without magic
-
 A new MikroTik should not immediately become a production router. First, bring RouterOS into a clear baseline state: access, user accounts, services, updates, time, backup/export, and minimal management protection.
 
 This article is not about a full firewall or VLANs. It is a baseline that reduces risk before the more complex configuration begins.

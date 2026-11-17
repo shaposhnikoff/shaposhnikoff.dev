@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# WireGuard on MikroTik: road-warrior, site-to-site, and limited access to VLANs
-
 WireGuard is a good way to provide remote network access without exposing WinBox, SSH, or WebFig to the internet. But VPN should not automatically mean "full access to everything".
 
 In RouterOS 7, WireGuard is built in and works well for road-warrior clients and site-to-site links if allowed-address, routing, and firewall are configured correctly.

@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# How to choose MikroTik hardware for a proper network: router, switch, Wi-Fi, and room to grow
-
 A proper network does not start with buying the most expensive router. It starts with understanding roles. MikroTik can be a router/firewall, switch, Wi-Fi controller, CAP, VPN gateway, DNS cache, and monitoring target. But one device should not always do everything at once.
 
 The goal of this article is to choose hardware for the architecture from the first article: core router, managed switch, access points, and enough performance headroom.

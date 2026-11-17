@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# MikroTik as the core router: roles, responsibility boundaries, and basic network logic
-
 The core router is where the network makes decisions. Traffic between WAN, LAN, VLANs, VPN, and server segments passes through it. It does not merely "share the internet"; it defines rules: who routes where, who can reach whom, what is logged, and where the firewall is applied.
 
 In MikroTik RouterOS 7, this role can be built cleanly if you do not mix routing, switching, and Wi-Fi into an unreadable configuration.

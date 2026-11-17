@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Monitoring and alerts: WAN, VPN, CPU/RAM, DHCP pools, logs, and notifications
-
 Monitoring answers the question "is the network healthy?" Alerts answer "when does a human need to intervene?" Without them, problems are discovered through user complaints.
 
 MikroTik can expose state through RouterOS tools, SNMP, logs, scripts, and external monitoring systems.

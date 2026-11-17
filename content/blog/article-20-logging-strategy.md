@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# Logging strategy: which events to write, where to send them, and how not to drown the router in logs
-
 Logs are not for checking a box. They help you understand what happened: why WAN went down, who tried to connect to WireGuard, which firewall drops triggered, when a backup failed, and why a DHCP pool ran out.
 
 But the router has limited resources. If you log everything, you get noise, storage wear, and loss of useful signal.

@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# CAPsMAN in RouterOS 7: centralized Wi-Fi, SSID, and VLAN per SSID
-
 When a network has more than one access point, manually configuring each AP quickly becomes inconvenient. CAPsMAN helps centralize Wi-Fi: SSIDs, security profiles, VLAN per SSID, provisioning, and some operational parameters.
 
 In RouterOS 7, it is important to understand the differences between legacy wireless and the newer WiFi stack. Commands and capabilities depend on the model, installed package, and device generation.

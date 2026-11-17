@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# mDNS and service discovery between VLANs: Chromecast, AirPlay, printers, and smart home
-
 After splitting the network into VLANs, some convenient features may stop working: a phone does not see Chromecast, a laptop cannot find a printer, Home Assistant does not discover a device. That does not mean the VLANs are configured incorrectly. The cause is often service discovery.
 
 mDNS and similar mechanisms are designed for a local broadcast/multicast domain. They do not cross VLANs automatically.

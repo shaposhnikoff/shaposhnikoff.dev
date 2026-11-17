@@ -8,8 +8,6 @@ toc: true
 ---
 
 
-# Exim4 + Dovecot Mail Server Setup Guide
-
 > **Platform:** Debian 12 (Bookworm) / Ubuntu 22.04+  
 > **Domain:** `shaposhnikoff.dev`  
 > **MX hostname:** `mail.shaposhnikoff.dev`  

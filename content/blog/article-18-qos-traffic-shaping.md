@@ -7,8 +7,6 @@ topics: ["networking"]
 toc: true
 ---
 
-# QoS and traffic shaping: queues, CAKE/FQ-CoDel, and congestion control
-
 QoS is not for "making the internet faster"; it is for controlling congestion. When an uplink is saturated, latency rises and calls, VPN, games, and interactive work suffer. Traffic shaping helps keep the queue under control.
 
 MikroTik RouterOS 7 has several queue mechanisms. The right choice depends on version, model, FastTrack, traffic type, and goal.
