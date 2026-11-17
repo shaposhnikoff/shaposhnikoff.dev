@@ -2,13 +2,13 @@
 
 Personal site for **Max Shaposhnikoff** — DevOps engineer, cloud infrastructure
 specialist, radio amateur. Built with [Hugo](https://gohugo.io/), no JS
-framework, deployed to Cloudflare Pages.
+framework, deployed to GitHub Pages via GitHub Actions.
 
 ```
                     ┌──────────────────────────────┐
                     │  hugo --gc --minify          │
                     │  → public/                   │
-                    │  → cloudflare pages          │
+                    │  → github pages              │
                     └──────────────────────────────┘
 ```
 
@@ -18,8 +18,7 @@ framework, deployed to Cloudflare Pages.
 - **Markup**    Markdown + Goldmark, server-rendered
 - **Styles**    A single hand-written CSS file, CSS variables, system fonts
 - **JS**        ~1 KB (theme toggle + TOC scroll-spy). No framework.
-- **Search**    Static `index.json` (output from home), client-side fetch
-- **Hosting**   Cloudflare Pages (or any static host)
+- **Hosting**   GitHub Pages (any static host works)
 
 ## Local development
 
@@ -62,35 +61,18 @@ hugo new notes/loadbalancers.md   # technical note (sidebar TOC, no date promine
 {{</* kbd */>}}⌘K{{</* /kbd */>}}                          → keycap
 ```
 
-## Deploying to Cloudflare Pages
+## Deploying
 
-1. Push this repo to GitHub / GitLab.
-2. In Cloudflare dashboard → **Pages → Create project → Connect to Git**.
-3. Build settings:
-   - **Framework preset**: Hugo
-   - **Build command**: `hugo --gc --minify`
-   - **Build output directory**: `public`
-   - **Environment variables**:
-     - `HUGO_VERSION` = `0.128.0` (or newer)
-     - `HUGO_ENV` = `production`
-     - `HUGO_ENABLEGITINFO` = `true`
-4. Cloudflare Pages will build on every push to `main` and surface preview
-   builds for every PR.
+`.github/workflows/deploy.yml` builds the site with Hugo extended (version
+pinned in the workflow `HUGO_VERSION`) and publishes it to GitHub Pages:
 
-### Custom domain
+- **Pull requests** to `main` run the build only, so a broken template fails
+  the check instead of reaching production.
+- **Pushes to `main`** (and manual runs) build and deploy.
 
-Add `shaposhnikoff.dev` in **Pages → Custom domains**. Cloudflare will issue
-a certificate automatically.
-
-## GitHub Actions (optional)
-
-A workflow is included at `.github/workflows/deploy.yml`. It builds the site
-and deploys to Cloudflare Pages via Wrangler — useful if you'd rather
-not give Cloudflare access to your repo. To enable it, add two repository
-secrets:
-
-- `CLOUDFLARE_API_TOKEN` — token with Pages: Edit permission
-- `CLOUDFLARE_ACCOUNT_ID` — your account ID
+Repository setting required once: **Settings → Pages → Source: GitHub
+Actions**. The custom domain `shaposhnikoff.dev` is configured in the same
+settings page; no `CNAME` file is needed for Actions-based deploys.
 
 ## File map
 
@@ -119,12 +101,13 @@ secrets:
 │   ├── index.html
 │   ├── partials/
 │   ├── shortcodes/
-│   ├── blog/
 │   └── projects/
 ├── static/
 │   ├── css/main.css
 │   ├── js/site.js
+│   ├── images/
 │   ├── favicon.svg
+│   ├── gpg.txt
 │   └── robots.txt
 └── .github/workflows/deploy.yml
 ```
