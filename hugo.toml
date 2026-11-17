@@ -47,7 +47,7 @@ timeout         = "60s"
 # ---- Outputs ---------------------------------------------------------------
 
 [outputs]
-  home    = ["HTML", "RSS", "JSON"]
+  home    = ["HTML", "RSS"]
   section = ["HTML", "RSS"]
 
 [outputFormats]
