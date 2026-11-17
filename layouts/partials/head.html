@@ -11,7 +11,7 @@
 <link rel="canonical" href="{{ .Permalink }}">
 <link rel="icon" type="image/svg+xml" href="{{ "favicon.svg" | relURL }}">
 <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }}" href="{{ "feed.xml" | relURL }}">
-<link rel="stylesheet" href="{{ "css/main.css" | relURL }}">
+<link rel="stylesheet" href="{{ "css/main.css" | relURL }}?v={{ readFile "static/css/main.css" | md5 | truncate 10 "" }}">
 
 {{/* OpenGraph */}}
 <meta property="og:title"        content="{{ $title }}">
